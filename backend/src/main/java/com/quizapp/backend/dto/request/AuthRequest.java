@@ -1,4 +1,4 @@
-package com.quizapp.backend.dto;
+package com.quizapp.backend.dto.request;
 
 
 import jakarta.validation.constraints.NotBlank;
