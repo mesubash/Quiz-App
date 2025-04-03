@@ -44,12 +44,13 @@ public class Question {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    public enum QuestionType {
+        SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE
+    }
+    
+    public enum Difficulty {
+        EASY, MEDIUM, HARD
+    }
 }
 
-public enum QuestionType {
-    SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE
-}
-
-public enum Difficulty {
-    EASY, MEDIUM, HARD
-}
