@@ -11,7 +11,6 @@ import com.quizapp.backend.dto.response.AuthResponse;
 import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.service.AuthService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,3 +30,5 @@ public class AuthController {
         return ResponseEntity.ok(authService.registerUser(registerRequest));
     }
 }
+
+
