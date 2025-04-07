@@ -2,9 +2,9 @@ package com.quizapp.backend.service;
 
 import com.quizapp.backend.dto.QuestionDTO;
 import com.quizapp.backend.exception.ResourceNotFoundException;
+import com.quizapp.backend.model.Option;
 import com.quizapp.backend.model.Question;
 import com.quizapp.backend.model.Quiz;
-import com.quizapp.backend.model.enums.QuestionType;
 import com.quizapp.backend.repository.QuestionRepository;
 import com.quizapp.backend.repository.QuizRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +21,6 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final QuizRepository quizRepository;
 
-    
-
     @Transactional(readOnly = true)
     public List<QuestionDTO> getQuestionsByQuizId(Long quizId) {
         return questionRepository.findByQuizId(quizId).stream()
@@ -34,11 +32,14 @@ public class QuestionService {
     public QuestionDTO updateQuestion(Long questionId, QuestionDTO questionDTO) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
-        
+
         question.setText(questionDTO.getText());
         question.setQuestionType(questionDTO.getQuestionType());
         question.setPoints(questionDTO.getPoints());
-        
+        question.setCorrectAnswer(questionDTO.getCorrectAnswer());
+        question.setDifficulty(questionDTO.getDifficulty());
+        question.setExplanation(questionDTO.getExplanation());
+
         return mapToDTO(questionRepository.save(question));
     }
 
@@ -51,13 +52,8 @@ public class QuestionService {
     public QuestionDTO addQuestion(Long quizId, QuestionDTO questionDTO) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
-        
-        Question question = new Question();
-        question.setQuiz(quiz);
-        question.setText(questionDTO.getText());
-        question.setQuestionType(questionDTO.getQuestionType());
-        question.setPoints(questionDTO.getPoints());
-        
+
+        Question question = mapToEntity(questionDTO, quiz);
         Question savedQuestion = questionRepository.save(question);
         return mapToDTO(savedQuestion);
     }
@@ -68,7 +64,35 @@ public class QuestionService {
                 .text(question.getText())
                 .questionType(question.getQuestionType())
                 .points(question.getPoints())
+                .correctAnswer(question.getCorrectAnswer())
+                .difficulty(question.getDifficulty())
+                .explanation(question.getExplanation())
                 .quizId(question.getQuiz().getId())
                 .build();
+    }
+    
+    private Question mapToEntity(QuestionDTO questionDTO, Quiz quiz) {
+        Question question = Question.builder()
+                .text(questionDTO.getText())
+                .correctAnswer(questionDTO.getCorrectAnswer())
+                .questionType(questionDTO.getQuestionType())
+                .difficulty(questionDTO.getDifficulty())
+                .explanation(questionDTO.getExplanation())
+                .points(questionDTO.getPoints())
+                .quiz(quiz)
+                .build();
+    
+        // Map options and set the question reference
+        List<Option> options = questionDTO.getOptions() != null ?
+                questionDTO.getOptions().stream()
+                        .map(optionDTO -> Option.builder()
+                                .optionText(optionDTO.getText())
+                                .isCorrect(optionDTO.getIsCorrect())
+                                .question(question) // Set the question reference
+                                .build())
+                        .toList() : List.of();
+    
+        question.setOptions(options); // Set the options in the question
+        return question;
     }
 }

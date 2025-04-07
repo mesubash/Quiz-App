@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import com.quizapp.backend.exception.BadRequestException;
 
@@ -81,29 +83,48 @@ public class QuizAttemptService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
-
     private int calculateScore(QuizAttempt attempt, SubmissionDTO submission) {
         int score = 0;
+    
+        if (submission.getAnswers() == null || submission.getAnswers().isEmpty()) {
+            throw new BadRequestException("Submission must contain answers");
+        }
+    
         for (AnswerSubmissionDTO answer : submission.getAnswers()) {
             Question question = questionRepository.findById(answer.getQuestionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
-            
-                     if (question.getOptions().stream()
+    
+            // Ensure options are not null
+            if (question.getOptions() == null) {
+                throw new IllegalStateException("Options list is null for question ID: " + question.getId());
+            }
+    
+            // Get correct option IDs for the question
+            Set<Long> correctOptionIds = question.getOptions().stream()
                     .filter(Option::isCorrect)
                     .map(Option::getId)
-                    .collect(Collectors.toList())
-                    .equals(answer.getSelectedOptionIds())) {
-                     score++;
-                    }
-            
+                    .collect(Collectors.toSet());
+    
+            // Get selected option IDs from the submission
+            Set<Long> selectedOptionIds = new HashSet<>(answer.getSelectedOptionIds());
+    
+            // Compare correct options with selected options
+            if (correctOptionIds.equals(selectedOptionIds)) {
+                score += question.getPoints(); // Add points for the question
+            }
+    
+            // Save the user's answer
             UserAnswer userAnswer = new UserAnswer();
             userAnswer.setQuizAttempt(attempt);
             userAnswer.setQuestion(question);
             userAnswer.setSelectedAnswer(answer.getSelectedOptionIds());
             userAnswerRepository.save(userAnswer);
         }
+    
         return score;
     }
+
+
 
     private QuizAttemptDTO mapToDTO(QuizAttempt attempt) {
         return QuizAttemptDTO.builder()

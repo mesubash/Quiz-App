@@ -42,12 +42,5 @@ public class LeaderboardService {
                 .collect(Collectors.toList());
     }
 
-    private LeaderboardEntryDTO mapToDTO(QuizAttempt attempt) {
-        return LeaderboardEntryDTO.builder()
-                .userId(attempt.getUser().getId())
-                .username(attempt.getUser().getUsername())
-                .score(attempt.getScore())
-                .rank(null) // Rank can be calculated separately if needed
-                .build();
-    }
+   
 }
