@@ -10,6 +10,7 @@ import com.quizapp.backend.model.User.Role;
 import com.quizapp.backend.repository.UserRepository;
 import com.quizapp.backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -79,6 +80,9 @@ public class AuthService {
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new BadRequestException("Email is already in use");
         }
+        
+        
+        
 
         // Create new user
         User user = User.builder()
@@ -87,7 +91,7 @@ public class AuthService {
             .password(passwordEncoder.encode(registerRequest.getPassword()))
             .firstName(registerRequest.getFirstName() != null ? registerRequest.getFirstName().trim() : null)
             .lastName(registerRequest.getLastName() != null ? registerRequest.getLastName().trim() : null)
-            .role(Role.USER)
+            .role(registerRequest.getRole() != null ? registerRequest.getRole() : Role.USER)
             .enabled(true)
             .build();
 
@@ -96,6 +100,7 @@ public class AuthService {
         
         return mapToUserResponse(savedUser);
     }
+    
 
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
@@ -107,4 +112,8 @@ public class AuthService {
             .role(user.getRole().name())
             .build();
     }
+
+
+    
+
 }
