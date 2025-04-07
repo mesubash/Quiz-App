@@ -35,9 +35,10 @@ CREATE TABLE questions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     quiz_id BIGINT NOT NULL,
     question_text TEXT NOT NULL,
-    question_type ENUM('SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE') NOT NULL,
+    question_type ENUM('SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'UNDEFINED') DEFAULT 'UNDEFINED' NOT NULL,
     points INT DEFAULT 1,
-    difficulty ENUM('EASY', 'MEDIUM', 'HARD') DEFAULT 'MEDIUM',
+    difficulty ENUM('EASY', 'MEDIUM', 'HARD', 'UNASSIGNED') DEFAULT 'UNASSIGNED',
+    correct_answer TEXT, -- Add this column
     explanation TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -50,6 +51,8 @@ CREATE TABLE options (
     question_id BIGINT NOT NULL,
     option_text TEXT NOT NULL,
     is_correct BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 );
 
@@ -63,6 +66,8 @@ CREATE TABLE quiz_attempts (
     score INT DEFAULT 0,
     time_taken_seconds INT DEFAULT 0,
     status ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
 );
@@ -131,7 +136,7 @@ VALUES
 (1, 'class', FALSE),
 (1, 'interface', FALSE),
 (1, 'extends', FALSE),
-(1, 'string', TRUE),  -- correct (not capitalized)
+(1, 'string', TRUE),  -- correct
 (1, 'implements', FALSE),
 
 -- Question 2 options
@@ -146,3 +151,10 @@ VALUES
 (3, 'Vector', TRUE),  -- correct
 (3, 'Stack', FALSE),
 (3, 'Queue', FALSE);
+
+
+-- Create a dedicated user
+
+CREATE USER 'quiz_app_user'@'localhost' IDENTIFIED BY 'strong_password';
+GRANT ALL PRIVILEGES ON quiz_app.* TO 'quiz_app_user'@'localhost';
+FLUSH PRIVILEGES;
