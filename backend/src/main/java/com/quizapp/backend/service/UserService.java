@@ -3,6 +3,7 @@ package com.quizapp.backend.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(String username) {
         // Find the user by username
         User user = userRepository.findByUsername(username)
@@ -39,8 +41,19 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    @Transactional
+    public void deleteCurrentUser() {
+        // Get the currently authenticated user
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+        // Delete the user
+        userRepository.delete(user);
+    }
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     public Object getAllUsers() {
         // Get all users from the repository
         List<User> users = userRepository.findAll();
@@ -57,6 +70,7 @@ public class UserService {
         // Map to UserResponse
         return mapToUserResponse(user);
     }
+
 
 
     private UserResponse mapToUserResponse(User user) {
