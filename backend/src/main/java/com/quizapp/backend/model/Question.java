@@ -4,8 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
+import com.quizapp.backend.model.enums.QuestionType;
+
 import java.time.LocalDateTime;
 import java.util.List;
+
 
 @Entity
 @Table(name = "questions")
@@ -22,12 +26,15 @@ public class Question {
     @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String questionText;
+    @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
+    private String text;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     private QuestionType questionType;
+
+    @Column(nullable = true, columnDefinition = "TEXT")
+    private String correctAnswer;
 
     private Integer points = 1;
 
@@ -39,18 +46,19 @@ public class Question {
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Option> options;
 
+  
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    public enum QuestionType {
-        SINGLE_CHOICE, MULTIPLE_CHOICE, TRUE_FALSE
-    }
+   
     
     public enum Difficulty {
         EASY, MEDIUM, HARD
     }
+
 }
 

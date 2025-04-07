@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.quizapp.backend.model.enums.AttemptStatus;
 
 @Entity
 @Table(name = "quiz_attempts")
@@ -34,13 +35,12 @@ public class QuizAttempt {
     private Integer timeTakenSeconds = 0;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AttemptStatus status = AttemptStatus.IN_PROGRESS;
 
     @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAnswer> userAnswers;
 
-    public enum AttemptStatus {
-        IN_PROGRESS, COMPLETED, ABANDONED
-    }
+    
 }
 

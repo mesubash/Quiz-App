@@ -20,14 +20,15 @@ public class Quiz {
 
     @Column(nullable = false)
     private String title;
-
+    
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    private boolean isPublished = false;
+    private boolean isPublished;
 
     private Integer timeLimitMinutes;
     private Integer passingScore;

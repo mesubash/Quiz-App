@@ -32,4 +32,15 @@ public class UserAnswer {
 
     @CreationTimestamp
     private LocalDateTime answeredAt;
+
+    public void setSelectedAnswer(Object selectedAnswer) {
+        if (selectedAnswer instanceof Option) {
+            this.option = (Option) selectedAnswer;
+        } else if (selectedAnswer instanceof String) {
+            this.option = new Option();
+            this.option.setOptionText((String) selectedAnswer);
+        } else {
+            throw new IllegalArgumentException("Invalid answer type: " + selectedAnswer.getClass().getName());
+        }
+    }
 }
