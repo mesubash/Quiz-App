@@ -1,7 +1,9 @@
 package com.quizapp.backend.dto.request;
 
 
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.*;
+import com.quizapp.backend.model.User.Role;
 import lombok.Data;
 
 @Data
@@ -20,4 +22,16 @@ public class RegisterRequest {
 
     private String firstName;
     private String lastName;
+    @Enumerated
+    @NotNull
+    private Role role;
+
+    public Role getRole() {
+        return role;
+        
+    }
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
 }
