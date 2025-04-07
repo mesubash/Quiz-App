@@ -11,9 +11,9 @@ public class QuizResultDTO {
     private Long attemptId;
     private Long quizId;
     private String quizTitle;
-    private Integer score;
-    private Integer maxPossibleScore;
-    private Double percentage; // Add this field
+    private Integer score; 
+    private Integer maxPossibleScore; 
+    private Double percentage; 
     private LocalDateTime completedAt;
     private List<QuestionResultDTO> questionResults;
 }
