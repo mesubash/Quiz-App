@@ -16,13 +16,14 @@ public class QuizController {
 
     private final QuizService quizService;
 
-    @PostMapping
+    @PostMapping("create")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuizDTO> createQuiz(@RequestBody QuizDTO quizDTO) {
+        
         return ResponseEntity.ok(quizService.createQuiz(quizDTO));
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<QuizDTO>> getAllQuizzes() {
         return ResponseEntity.ok(quizService.getAllQuizzes());
     }
