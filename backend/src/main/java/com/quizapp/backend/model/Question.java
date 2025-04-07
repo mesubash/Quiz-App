@@ -6,10 +6,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.quizapp.backend.model.enums.QuestionType;
+import com.quizapp.backend.model.enums.Difficulty;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 
 @Entity
 @Table(name = "questions")
@@ -30,35 +30,25 @@ public class Question {
     private String text;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
+    @Column(nullable = false)
     private QuestionType questionType;
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String correctAnswer;
 
-    private Integer points = 1;
+    private Integer points;
 
     @Enumerated(EnumType.STRING)
-    private Difficulty difficulty = Difficulty.MEDIUM;
+    private Difficulty difficulty = Difficulty.UNASSIGNED;
 
     private String explanation;
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Option> options;
-
-  
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-   
-    
-    public enum Difficulty {
-        EASY, MEDIUM, HARD
-    }
-
 }
-
