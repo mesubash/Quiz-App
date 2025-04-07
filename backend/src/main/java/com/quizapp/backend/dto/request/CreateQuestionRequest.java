@@ -1,10 +1,11 @@
 package com.quizapp.backend.dto.request;
 
 
-import com.quizapp.backend.model.QuestionType;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import java.util.List;
+
+import com.quizapp.backend.model.enums.QuestionType;
 
 @Data
 @Builder
