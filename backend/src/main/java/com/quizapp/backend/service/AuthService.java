@@ -9,8 +9,13 @@ import com.quizapp.backend.model.User;
 import com.quizapp.backend.model.User.Role;
 import com.quizapp.backend.repository.UserRepository;
 import com.quizapp.backend.security.JwtTokenProvider;
+
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,6 +23,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +34,7 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
 
     @Transactional
     public AuthResponse authenticateUser(AuthRequest authRequest) {
@@ -40,10 +49,10 @@ public class AuthService {
 
             // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            
+
             // Generate JWT tokens
             String accessToken = tokenProvider.generateToken(authentication);
-            
+
             // Get user details
             User user = userRepository.findByUsername(authRequest.getUsername())
                 .orElseThrow(() -> new BadRequestException("User not found"));
@@ -80,9 +89,6 @@ public class AuthService {
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new BadRequestException("Email is already in use");
         }
-        
-        
-        
 
         // Create new user
         User user = User.builder()
@@ -97,10 +103,45 @@ public class AuthService {
 
         // Save user
         User savedUser = userRepository.save(user);
-        
+
         return mapToUserResponse(savedUser);
     }
-    
+
+    @Transactional
+    public void logoutUser() {
+        // Get the current authentication
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null) {
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        // Clear the authentication context
+        SecurityContextHolder.clearContext();
+
+        // Invalidate the JWT token
+        String token = getCurrentToken();
+        if (token != null) {
+            invalidateToken(token);
+        }
+    }
+
+    private String getCurrentToken() {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+    private void invalidateToken(String token) {
+        // Store the token in Redis with an expiration time equal to the token's remaining validity
+        long expiration = tokenProvider.getRemainingExpiration(token);
+        if (expiration > 0) {
+            redisTemplate.opsForValue().set("blacklist:" + token, "true", expiration, TimeUnit.MILLISECONDS);
+        }
+    }
 
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
@@ -112,8 +153,4 @@ public class AuthService {
             .role(user.getRole().name())
             .build();
     }
-
-
-    
-
 }
