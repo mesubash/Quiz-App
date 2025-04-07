@@ -1,12 +1,10 @@
 package com.quizapp.backend.repository;
 
-import com.quizapp.backend.dto.LeaderboardEntryDTO;
 import com.quizapp.backend.model.QuizAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
 
 @Repository
