@@ -41,6 +41,16 @@ public class QuizAttempt {
     @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAnswer> userAnswers;
 
+    @PrePersist
+    private void initializeDefaults() {
+        if (this.status == null) {
+            this.status = AttemptStatus.IN_PROGRESS;
+        }
+        if (this.score == null) {
+            this.score = 0;
+        }
+    }
+
     
 }
 

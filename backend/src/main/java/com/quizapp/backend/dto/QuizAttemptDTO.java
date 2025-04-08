@@ -15,4 +15,5 @@ public class QuizAttemptDTO {
     private LocalDateTime completedAt;
     private Integer score;
     private Integer timeTakenSeconds;
+    private String status;
 }

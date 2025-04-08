@@ -3,6 +3,7 @@ package com.quizapp.backend.service;
 import com.quizapp.backend.dto.*;
 import com.quizapp.backend.exception.ResourceNotFoundException;
 import com.quizapp.backend.model.*;
+import com.quizapp.backend.model.enums.AttemptStatus;
 import com.quizapp.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,15 +33,26 @@ public class QuizAttemptService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        
+
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
-        QuizAttempt attempt = new QuizAttempt();
-        attempt.setUser(user);
-        attempt.setQuiz(quiz);
-        attempt.setStartedAt(LocalDateTime.now());
-        
+        // Check if the user already has an active attempt for this quiz
+        List<QuizAttempt> activeAttempts = attemptRepository.findByUserId(user.getId()).stream()
+                .filter(attempt -> attempt.getQuiz().getId().equals(quizId) && attempt.getStatus() == AttemptStatus.IN_PROGRESS)
+                .collect(Collectors.toList());
+
+        if (!activeAttempts.isEmpty()) {
+            throw new BadRequestException("You already have an active attempt for this quiz.");
+        }
+
+        QuizAttempt attempt = QuizAttempt.builder()
+                .user(user)
+                .quiz(quiz)
+                .startedAt(LocalDateTime.now())
+                .status(AttemptStatus.IN_PROGRESS)
+                .build();
+
         QuizAttempt savedAttempt = attemptRepository.save(attempt);
         return mapToDTO(savedAttempt);
     }
@@ -50,8 +62,23 @@ public class QuizAttemptService {
         QuizAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
 
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            throw new BadRequestException("Only in-progress attempts can be submitted.");
+        }
+
         if (submission.getAnswers() == null || submission.getAnswers().isEmpty()) {
-            throw new BadRequestException("Submission must contain answers");
+            throw new BadRequestException("Submission must contain answers.");
+        }
+
+        // Validate that all submitted answers belong to the quiz
+        Set<Long> quizQuestionIds = attempt.getQuiz().getQuestions().stream()
+                .map(Question::getId)
+                .collect(Collectors.toSet());
+
+        for (AnswerSubmissionDTO answer : submission.getAnswers()) {
+            if (!quizQuestionIds.contains(answer.getQuestionId())) {
+                throw new BadRequestException("Invalid question ID in submission: " + answer.getQuestionId());
+            }
         }
 
         // Calculate score
@@ -62,6 +89,7 @@ public class QuizAttemptService {
         attempt.setTimeTakenSeconds((int) timeTaken);
         attempt.setScore(score);
         attempt.setCompletedAt(LocalDateTime.now());
+        attempt.setStatus(AttemptStatus.COMPLETED);
         attemptRepository.save(attempt);
 
         // Calculate percentage

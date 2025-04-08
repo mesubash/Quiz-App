@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attempts")
@@ -17,8 +18,13 @@ public class QuizAttemptController {
     private final QuizAttemptService quizAttemptService;
 
     @PostMapping("/start")
-    public ResponseEntity<QuizAttemptDTO> startAttempt(@RequestParam Long quizId) {
-        return ResponseEntity.ok(quizAttemptService.startAttempt(quizId));
+    public ResponseEntity<QuizAttemptDTO> startQuizAttempt(@RequestBody Map<String, Long> requestBody) {
+        Long quizId = requestBody.get("quizId");
+        if (quizId == null) {
+            throw new IllegalArgumentException("Quiz ID is required");
+        }
+        QuizAttemptDTO attempt = quizAttemptService.startAttempt(quizId);
+        return ResponseEntity.ok(attempt);
     }
 
     @PostMapping("/{attemptId}/submit")

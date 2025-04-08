@@ -29,4 +29,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
        List<QuizAttempt> findTopScores();
        @Query("SELECT a FROM QuizAttempt a WHERE a.quiz.id = :quizId ORDER BY a.score DESC")
        List<QuizAttempt> findTopScoresByQuizId(Long quizId);
+
+       @Query("SELECT a FROM QuizAttempt a WHERE a.user.id = :userId AND a.quiz.id = :quizId AND a.status = 'IN_PROGRESS'")
+       List<QuizAttempt> findActiveAttemptsByUserAndQuiz(Long userId, Long quizId);
 }

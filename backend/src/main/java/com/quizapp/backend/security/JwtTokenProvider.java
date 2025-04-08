@@ -78,10 +78,8 @@ public class JwtTokenProvider {
                     .compact();
                 }
     public boolean validateRefreshToken(String token) {
-        System.out.println("Validating refresh token: " + token);
         
         try {
-            System.out.println("Parsing refresh token: " + token);
             Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build().parseSignedClaims(token);
@@ -161,7 +159,6 @@ public class JwtTokenProvider {
     }
 
     private SecretKey getSigningKey() {
-        System.out.println("JWT_SECRET: " + jwtSecret);
         if (jwtSecret == null || jwtSecret.isEmpty()) {
             throw new IllegalArgumentException("JWT secret is not set or empty");
             

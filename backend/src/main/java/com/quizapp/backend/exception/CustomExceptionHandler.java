@@ -47,4 +47,15 @@ public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
         
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(InvalidQuizAttemptException.class)
+        public ResponseEntity<ErrorDetails> handleInvalidQuizAttemptException(InvalidQuizAttemptException ex, WebRequest request) {
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                ex.getMessage(),
+                request.getDescription(false),
+                "INVALID_QUIZ_ATTEMPT"
+        );
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
+        }
 }
