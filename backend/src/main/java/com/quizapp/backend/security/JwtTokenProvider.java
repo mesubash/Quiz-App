@@ -161,7 +161,14 @@ public class JwtTokenProvider {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        System.out.println("JWT_SECRET: " + jwtSecret);
+        if (jwtSecret == null || jwtSecret.isEmpty()) {
+            throw new IllegalArgumentException("JWT secret is not set or empty");
+            
+        }
+        // Remove any prefix like "JWT_SECRET:" if present
+        String filteredSecret = jwtSecret.replace("JWT_SECRET:", "").trim();
+        byte[] keyBytes = Decoders.BASE64.decode(filteredSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
