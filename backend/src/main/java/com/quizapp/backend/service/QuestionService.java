@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,40 +31,58 @@ public class QuestionService {
     }
 
     @Transactional
-public QuestionDTO updateQuestion(Long questionId, QuestionDTO questionDTO) {
-    // Fetch the existing question
-    Question question = questionRepository.findById(questionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+    public QuestionDTO updateQuestion(Long questionId, QuestionDTO questionDTO) {
+        // Fetch the existing question
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
-    // Update basic fields
-    question.setText(questionDTO.getText());
-    question.setQuestionType(questionDTO.getQuestionType());
-    question.setDifficulty(questionDTO.getDifficulty());
-    question.setExplanation(questionDTO.getExplanation());
-    question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
-    question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
+        // Update basic fields
+        question.setText(questionDTO.getText());
+        question.setQuestionType(questionDTO.getQuestionType());
+        question.setDifficulty(questionDTO.getDifficulty());
+        question.setExplanation(questionDTO.getExplanation());
+        question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
+        question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
 
-    // Update options
-    if (questionDTO.getOptions() != null) {
-        // Clear existing options
-        question.getOptions().clear();
+        // Update options
+        if (questionDTO.getOptions() != null) {
+            // Map existing options by ID for easy lookup
+            Map<Long, Option> existingOptionsMap = question.getOptions().stream()
+                    .collect(Collectors.toMap(Option::getId, option -> option));
 
-        // Add updated options
-        List<Option> updatedOptions = questionDTO.getOptions().stream()
-                .map(optionDTO -> Option.builder()
-                        .id(optionDTO.getId()) // Use existing ID if present
-                        .optionText(optionDTO.getText())
-                        .isCorrect(optionDTO.getIsCorrect())
-                        .question(question) // Link the option to the question
-                        .build())
-                .toList();
+            // Iterate through the new options from the DTO
+            List<Option> updatedOptions = questionDTO.getOptions().stream()
+                    .map(optionDTO -> {
+                        if (optionDTO.getId() != null && existingOptionsMap.containsKey(optionDTO.getId())) {
+                            // Update existing option
+                            Option existingOption = existingOptionsMap.get(optionDTO.getId());
+                            existingOption.setOptionText(optionDTO.getText());
+                            existingOption.setCorrect(optionDTO.getIsCorrect());
+                            return existingOption;
+                        } else {
+                            // Create new option
+                            return Option.builder()
+                                    .optionText(optionDTO.getText())
+                                    .isCorrect(optionDTO.getIsCorrect())
+                                    .question(question) // Link the option to the question
+                                    .build();
+                        }
+                    })
+                    .toList();
 
-        question.getOptions().addAll(updatedOptions);
+            // Remove options that are no longer present in the DTO
+            question.getOptions().removeIf(option -> updatedOptions.stream()
+                    .noneMatch(updatedOption -> updatedOption.getId() != null && updatedOption.getId().equals(option.getId())));
+
+            // Add updated options back to the question
+            question.getOptions().clear();
+            question.getOptions().addAll(updatedOptions);
+        }
+
+        // Save the updated question
+        return mapToDTO(questionRepository.save(question));
     }
 
-    // Save the updated question
-    return mapToDTO(questionRepository.save(question));
-}
     @Transactional
     public void deleteQuestion(Long questionId) {
         questionRepository.deleteById(questionId);

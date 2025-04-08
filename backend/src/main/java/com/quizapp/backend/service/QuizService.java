@@ -48,7 +48,8 @@ public class QuizService {
         quiz.setQuestions(questions);
     
         // Calculate quiz difficulty
-        quiz.setDifficulty(calculateQuizDifficulty(questions));
+        Difficulty calculatedDifficulty = calculateQuizDifficulty(questions);
+        quiz.setDifficulty(calculatedDifficulty);
     
         Quiz savedQuiz = quizRepository.save(quiz);
         return mapToDTO(savedQuiz);
@@ -77,13 +78,6 @@ public class QuizService {
         return question;
     }
 
-    private Option mapToOptionEntity(OptionDTO optionDTO, Question question) {
-        return Option.builder()
-                .optionText(optionDTO.getText())
-                .isCorrect(optionDTO.getIsCorrect())
-                .question(question) // Set the question reference
-                .build();
-    }
 
     @Transactional(readOnly = true)
     public List<QuizDTO> getAllQuizzes() {
@@ -109,8 +103,11 @@ public class QuizService {
         quiz.setTimeLimitMinutes(quizDTO.getTimeLimitMinutes());
     
         // Recalculate difficulty based on updated questions
-        if (quiz.getQuestions() != null) {
-            quiz.setDifficulty(calculateQuizDifficulty(quiz.getQuestions()));
+        if (quiz.getQuestions() != null && !quiz.getQuestions().isEmpty()) {
+            Difficulty calculatedDifficulty = calculateQuizDifficulty(quiz.getQuestions());
+            quiz.setDifficulty(calculatedDifficulty);
+        } else {
+            quiz.setDifficulty(Difficulty.UNASSIGNED);
         }
     
         return mapToDTO(quizRepository.save(quiz));
@@ -131,6 +128,7 @@ public class QuizService {
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
                 .isPublished(quiz.isPublished())
                 .createdById(quiz.getCreatedBy() != null ? quiz.getCreatedBy().getId() : null)
+                .difficulty(quiz.getDifficulty()) // Include difficulty
                 .questions(quiz.getQuestions() != null ? quiz.getQuestions().stream()
                         .map(this::mapToQuestionDTO)
                         .collect(Collectors.toList()) : null) // Map questions
@@ -161,41 +159,35 @@ public class QuizService {
                         .toList() : List.of()) // Handle null options
                 .build();
     }
-
     private Difficulty calculateQuizDifficulty(List<Question> questions) {
         if (questions.isEmpty()) {
             return Difficulty.UNASSIGNED;
         }
-
-        boolean hasEasy = false;
-        boolean hasMedium = false;
-        boolean hasHard = false;
-
-        for (Question question : questions) {
-            switch (question.getDifficulty()) {
-                case EASY -> hasEasy = true;
-                case MEDIUM -> hasMedium = true;
-                case HARD -> hasHard = true;
-                default -> throw new IllegalArgumentException("Unexpected value: " + question.getDifficulty());
-            }
-        }
-
-        if (hasHard && !hasMedium && !hasEasy) {
+    
+        // Assign numerical values to difficulty levels
+        final int EASY_SCORE = 1;
+        final int MEDIUM_SCORE = 2;
+        final int HARD_SCORE = 3;
+    
+        // Calculate the average difficulty score
+        double averageDifficulty = questions.stream()
+                .mapToInt(q -> switch (q.getDifficulty()) {
+                    case EASY -> EASY_SCORE;
+                    case MEDIUM -> MEDIUM_SCORE;
+                    case HARD -> HARD_SCORE;
+                    default -> 0;
+                })
+                .average()
+                .orElse(0); // Default to 0 if no questions exist
+    
+        // Determine difficulty based on average score
+        if (averageDifficulty >= 2.5) {
             return Difficulty.HARD;
-        } else if (hasMedium || (hasEasy && hasHard)) {
+        } else if (averageDifficulty >= 1.8) {
             return Difficulty.MEDIUM;
-        } else if (hasEasy) {
+        } else {
             return Difficulty.EASY;
         }
-
-        return Difficulty.UNASSIGNED;
     }
-
-    private OptionDTO mapToOptionDTO(Option option) {
-        return OptionDTO.builder()
-                .id(option.getId())
-                .text(option.getOptionText())
-                .isCorrect(option.isCorrect())
-                .build();
-    }
+    
 }
