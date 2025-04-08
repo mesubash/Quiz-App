@@ -24,8 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +51,15 @@ public class AuthService {
 
             // Generate JWT tokens
             String accessToken = tokenProvider.generateToken(authentication);
+            String refreshToken = tokenProvider.generateRefreshToken(authentication);
+
+           // Store refresh token in Redis
+            redisTemplate.opsForValue().set(
+                "refresh:" + refreshToken,
+                authentication.getName(),
+                tokenProvider.getRefreshTokenExpirationInMs(),
+                TimeUnit.MILLISECONDS
+            );
 
             // Get user details
             User user = userRepository.findByUsername(authRequest.getUsername())
@@ -59,6 +67,7 @@ public class AuthService {
 
             return AuthResponse.builder()
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(tokenProvider.getJwtExpirationInMs())
                 .user(mapToUserResponse(user))
@@ -67,7 +76,31 @@ public class AuthService {
         } catch (Exception e) {
             throw new BadRequestException("Invalid username/password");
         }
+
     }
+    @Transactional
+    public AuthResponse refreshAccessToken(String refreshToken) {
+        // Validate the refresh token
+        if (!tokenProvider.validateRefreshToken(refreshToken)) {
+            throw new BadRequestException("Invalid or expired refresh token");
+        }
+
+        // Get the username from the refresh token
+        String username = tokenProvider.getUsernameFromRefreshToken(refreshToken);
+
+        // Generate a new access token
+        String newAccessToken = tokenProvider.generateToken(username);
+
+        return AuthResponse.builder()
+            .accessToken(newAccessToken)
+            .refreshToken(refreshToken) 
+            .tokenType("Bearer")
+            .expiresIn(tokenProvider.getJwtExpirationInMs())
+            .build();
+    
+    }
+
+    
 
     @Transactional
     public UserResponse registerUser(RegisterRequest registerRequest) {
@@ -108,7 +141,7 @@ public class AuthService {
     }
 
     @Transactional
-    public void logoutUser() {
+    public void logoutUser(HttpServletRequest request) {
         // Get the current authentication
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -120,20 +153,20 @@ public class AuthService {
         SecurityContextHolder.clearContext();
 
         // Invalidate the JWT token
-        String token = getCurrentToken();
+        String token = getCurrentToken(request);
         if (token != null) {
             invalidateToken(token);
         }
     }
 
-    private String getCurrentToken() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+    private String getCurrentToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
         return null;
     }
+
 
     private void invalidateToken(String token) {
         // Store the token in Redis with an expiration time equal to the token's remaining validity
@@ -152,5 +185,18 @@ public class AuthService {
             .lastName(user.getLastName())
             .role(user.getRole().name())
             .build();
+    }
+
+    public UserResponse getUserDetailsByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole().name())
+                .build();
     }
 }

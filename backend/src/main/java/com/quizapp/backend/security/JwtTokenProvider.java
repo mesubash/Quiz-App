@@ -11,12 +11,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.security.Key;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+
+import javax.crypto.SecretKey;
 
 @Component
 public class JwtTokenProvider {
@@ -26,6 +25,9 @@ public class JwtTokenProvider {
 
     @Value("${app.jwt-expiration-milliseconds}")
     private long jwtExpirationInMs;
+
+    @Value("${app.jwt-refresh-expiration-milliseconds}")
+    private long jwtRefreshExpirationInMs;
 
     private final StringRedisTemplate redisTemplate;
     private static final String BLACKLIST_PREFIX = "blacklist:";
@@ -40,13 +42,64 @@ public class JwtTokenProvider {
         Date currentDate = new Date();
         Date expireDate = new Date(currentDate.getTime() + jwtExpirationInMs);
 
-        return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(currentDate)
-                .setExpiration(expireDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+        return Jwts
+                    .builder()
+                    .subject(username)
+                    .issuedAt(currentDate)
+                    .expiration(expireDate)
+                    .signWith(getSigningKey())
+                    .compact();
+        
     }
+     // Generate refresh token
+     public String generateRefreshToken(Authentication authentication) {
+        String username = authentication.getName();
+        Date currentDate = new Date();
+        Date expireDate = new Date(currentDate.getTime() + jwtRefreshExpirationInMs);
+
+        return Jwts 
+                    .builder()
+                    .subject(username)
+                    .issuedAt(currentDate)
+                    .expiration(expireDate)
+                    .signWith(getSigningKey())
+                    .compact();
+    }
+    public String generateToken(String username) {
+        Date currentDate = new Date();
+        Date expireDate = new Date(currentDate.getTime() + jwtExpirationInMs);
+
+        return Jwts
+                    .builder()
+                    .subject(username)
+                    .issuedAt(currentDate)
+                    .expiration(expireDate)
+                    .signWith(getSigningKey())
+                    .compact();
+                }
+    public boolean validateRefreshToken(String token) {
+        System.out.println("Validating refresh token: " + token);
+        
+        try {
+            System.out.println("Parsing refresh token: " + token);
+            Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build().parseSignedClaims(token);
+           return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+    public String getUsernameFromRefreshToken(String token) {
+        Claims claims = 
+                        Jwts.parser()
+                        .verifyWith(getSigningKey())
+                        .build()
+                        .parseSignedClaims(token)
+                        .getPayload();
+        return claims.getSubject();
+    }
+       
 
     // Get username from token
     public String getUsernameFromJWT(String token) {
@@ -66,17 +119,17 @@ public class JwtTokenProvider {
     private Claims parseToken(String token) {
         try {
             return Jwts.parser()
-                    .setSigningKey(getSigningKey())
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
         } catch (ExpiredJwtException e) {
             throw new RuntimeException("Token has expired", e);
         } catch (UnsupportedJwtException e) {
             throw new RuntimeException("Unsupported JWT token", e);
         } catch (MalformedJwtException e) {
             throw new RuntimeException("Invalid JWT token", e);
-        } catch (SignatureException e) {
+        } catch (JwtException e) {
             throw new RuntimeException("Invalid JWT signature", e);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("JWT claims string is empty", e);
@@ -107,7 +160,7 @@ public class JwtTokenProvider {
         }
     }
 
-    private Key getSigningKey() {
+    private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
@@ -115,8 +168,10 @@ public class JwtTokenProvider {
     public Long getJwtExpirationInMs() {
         return jwtExpirationInMs;
     }
-    public String getCurrentToken() {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+    public long getRefreshTokenExpirationInMs() {
+        return jwtRefreshExpirationInMs;
+    }
+    public String getCurrentToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
@@ -124,7 +179,7 @@ public class JwtTokenProvider {
         return null;
     }
     public long getRemainingExpiration(String token) {
-        Claims claims = parseToken(token); // Reuse the parseToken method
+        Claims claims = parseToken(token);
         return claims.getExpiration().getTime() - System.currentTimeMillis();
     }
 
