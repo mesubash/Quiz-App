@@ -35,8 +35,9 @@ public class Question {
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String correctAnswer;
+    private Integer attempts = 0;
+    private Integer correctSelections = 0;
 
-    private Integer points;
 
     @Enumerated(EnumType.STRING)
     private Difficulty difficulty = Difficulty.UNASSIGNED;

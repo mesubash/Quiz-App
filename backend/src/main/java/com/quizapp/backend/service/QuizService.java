@@ -56,7 +56,8 @@ public class QuizService {
         question.setQuestionType(questionDTO.getQuestionType());
         question.setDifficulty(questionDTO.getDifficulty());
         question.setCorrectAnswer(questionDTO.getCorrectAnswer());
-        question.setPoints(questionDTO.getPoints());
+        question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
+        question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
         question.setExplanation(questionDTO.getExplanation());
         question.setQuiz(quiz); // Set the quiz reference
 
@@ -131,12 +132,18 @@ public class QuizService {
                 .questionType(question.getQuestionType())
                 .difficulty(question.getDifficulty())
                 .correctAnswer(question.getCorrectAnswer())
-                .points(question.getPoints())
+                .attempts(question.getAttempts())
+                .correctSelections(question.getCorrectSelections())
                 .explanation(question.getExplanation())
                 .quizId(question.getQuiz().getId())
                 .options(question.getOptions() != null ? question.getOptions().stream()
-                        .map(this::mapToOptionDTO)
-                        .collect(Collectors.toList()) : null) // Map options
+                        .map(option -> OptionDTO.builder()
+                                .id(option.getId())
+                                .text(option.getOptionText())
+                                .isCorrect(option.isCorrect())
+                                .questionId(option.getQuestion().getId()) // Set the questionId
+                                .build())
+                        .toList() : null)
                 .build();
     }
 

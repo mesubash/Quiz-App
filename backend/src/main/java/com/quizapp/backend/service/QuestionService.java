@@ -1,5 +1,6 @@
 package com.quizapp.backend.service;
 
+import com.quizapp.backend.dto.OptionDTO;
 import com.quizapp.backend.dto.QuestionDTO;
 import com.quizapp.backend.exception.ResourceNotFoundException;
 import com.quizapp.backend.model.Option;
@@ -35,11 +36,11 @@ public class QuestionService {
 
         question.setText(questionDTO.getText());
         question.setQuestionType(questionDTO.getQuestionType());
-        question.setPoints(questionDTO.getPoints());
         question.setCorrectAnswer(questionDTO.getCorrectAnswer());
         question.setDifficulty(questionDTO.getDifficulty());
         question.setExplanation(questionDTO.getExplanation());
-
+        question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
+        question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
         return mapToDTO(questionRepository.save(question));
     }
 
@@ -63,14 +64,23 @@ public class QuestionService {
                 .id(question.getId())
                 .text(question.getText())
                 .questionType(question.getQuestionType())
-                .points(question.getPoints())
                 .correctAnswer(question.getCorrectAnswer())
                 .difficulty(question.getDifficulty())
                 .explanation(question.getExplanation())
+                .attempts(question.getAttempts()) // Include attempts
+                .correctSelections(question.getCorrectSelections()) // Include correctSelections
                 .quizId(question.getQuiz().getId())
+                .options(question.getOptions() != null ? question.getOptions().stream()
+                        .map(option -> OptionDTO.builder()
+                                .id(option.getId())
+                                .text(option.getOptionText())
+                                .isCorrect(option.isCorrect())
+                                .questionId(option.getQuestion().getId()) // Set the questionId
+                                .build())
+                        .toList() : null)
                 .build();
     }
-    
+
     private Question mapToEntity(QuestionDTO questionDTO, Quiz quiz) {
         Question question = Question.builder()
                 .text(questionDTO.getText())
@@ -78,21 +88,22 @@ public class QuestionService {
                 .questionType(questionDTO.getQuestionType())
                 .difficulty(questionDTO.getDifficulty())
                 .explanation(questionDTO.getExplanation())
-                .points(questionDTO.getPoints())
+                .attempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0) // Default to 0
+                .correctSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0) // Default to 0
                 .quiz(quiz)
                 .build();
-    
-        // Map options and set the question reference
-        List<Option> options = questionDTO.getOptions() != null ?
-                questionDTO.getOptions().stream()
-                        .map(optionDTO -> Option.builder()
-                                .optionText(optionDTO.getText())
-                                .isCorrect(optionDTO.getIsCorrect())
-                                .question(question) // Set the question reference
-                                .build())
-                        .toList() : List.of();
-    
-        question.setOptions(options); // Set the options in the question
+
+        if (questionDTO.getOptions() != null) {
+            List<Option> options = questionDTO.getOptions().stream()
+                    .map(optionDTO -> Option.builder()
+                            .optionText(optionDTO.getText())
+                            .isCorrect(optionDTO.getIsCorrect())
+                            .question(question)
+                            .build())
+                    .toList();
+            question.setOptions(options);
+        }
+
         return question;
     }
 }

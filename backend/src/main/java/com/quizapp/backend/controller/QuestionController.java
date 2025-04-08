@@ -14,13 +14,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/quizzes/{quizId}/questions")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class QuestionController {
 
     private final QuestionService questionService;
 
 
-    @PostMapping("/{questionId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/add")
     public ResponseEntity<QuestionDTO> addQuestion(
             @PathVariable Long quizId,
             @Valid @RequestBody QuestionDTO questionDTO) {
@@ -32,8 +32,8 @@ public class QuestionController {
         return ResponseEntity.ok(questionService.getQuestionsByQuizId(quizId));
     }
 
+
     @PutMapping("/{questionId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuestionDTO> updateQuestion(
             @PathVariable Long quizId,
             @PathVariable Long questionId,
@@ -42,7 +42,6 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{questionId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteQuestion(
             @PathVariable Long quizId,
             @PathVariable Long questionId) {

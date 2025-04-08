@@ -3,7 +3,6 @@ package com.quizapp.backend.dto;
 import java.util.List;
 
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.AllArgsConstructor;

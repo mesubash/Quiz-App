@@ -36,10 +36,11 @@ CREATE TABLE questions (
     quiz_id BIGINT NOT NULL,
     question_text TEXT NOT NULL,
     question_type ENUM('SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'UNDEFINED') DEFAULT 'UNDEFINED' NOT NULL,
-    points INT DEFAULT 1,
     difficulty ENUM('EASY', 'MEDIUM', 'HARD', 'UNASSIGNED') DEFAULT 'UNASSIGNED',
-    correct_answer TEXT, -- Add this column
+    correct_answer TEXT, 
     explanation TEXT,
+    attempts INT DEFAULT 0,
+    correct_selections INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE

@@ -49,18 +49,22 @@ public class QuizAttemptService {
     public QuizResultDTO submitAttempt(Long attemptId, SubmissionDTO submission) {
         QuizAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
-        
-        // Calculate score
-        int score = calculateScore(attempt, submission);
-        long timeTaken = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
-        attempt.setTimeTakenSeconds((int) timeTaken);
-        
-        attempt.setScore(score);
-        attempt.setCompletedAt(LocalDateTime.now());
-        attemptRepository.save(attempt);
+
         if (submission.getAnswers() == null || submission.getAnswers().isEmpty()) {
             throw new BadRequestException("Submission must contain answers");
         }
+
+        // Calculate score
+        int score = calculateScore(attempt, submission);
+
+        // Update the attempt with the score and completion time
+        long timeTaken = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
+        attempt.setTimeTakenSeconds((int) timeTaken);
+        attempt.setScore(score);
+        attempt.setCompletedAt(LocalDateTime.now());
+        attemptRepository.save(attempt);
+
+        // Calculate percentage
         double percentage = (double) score / attempt.getQuiz().getQuestions().size() * 100;
 
         return QuizResultDTO.builder()
@@ -72,8 +76,6 @@ public class QuizAttemptService {
                 .percentage(percentage)
                 .completedAt(attempt.getCompletedAt())
                 .build();
-        
-        
     }
 
     @Transactional(readOnly = true)
@@ -86,18 +88,10 @@ public class QuizAttemptService {
     private int calculateScore(QuizAttempt attempt, SubmissionDTO submission) {
         int score = 0;
     
-        if (submission.getAnswers() == null || submission.getAnswers().isEmpty()) {
-            throw new BadRequestException("Submission must contain answers");
-        }
-    
         for (AnswerSubmissionDTO answer : submission.getAnswers()) {
+            // Fetch the question from the database
             Question question = questionRepository.findById(answer.getQuestionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
-    
-            // Ensure options are not null
-            if (question.getOptions() == null) {
-                throw new IllegalStateException("Options list is null for question ID: " + question.getId());
-            }
     
             // Get correct option IDs for the question
             Set<Long> correctOptionIds = question.getOptions().stream()
@@ -110,8 +104,16 @@ public class QuizAttemptService {
     
             // Compare correct options with selected options
             if (correctOptionIds.equals(selectedOptionIds)) {
-                score += question.getPoints(); // Add points for the question
+                // Increment correct selections if the answer is correct
+                question.setCorrectSelections(question.getCorrectSelections() + 1);
+                score++; // Increment the score for the correct answer
             }
+    
+            // Increment the attempts for the question
+            question.setAttempts(question.getAttempts() + 1);
+    
+            // Save the updated question
+            questionRepository.save(question);
     
             // Save the user's answer
             UserAnswer userAnswer = new UserAnswer();

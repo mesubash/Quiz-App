@@ -29,10 +29,14 @@ public class QuestionDTO {
     private Difficulty difficulty;
 
     private String explanation;
+    
+    private Integer attempts;
+    private Integer correctSelections;
 
     private Integer points; //can be used as sum up while user gives the corrent answer in a quiz
 
     private Long quizId;
 
     private List<OptionDTO> options;
+    
 }
