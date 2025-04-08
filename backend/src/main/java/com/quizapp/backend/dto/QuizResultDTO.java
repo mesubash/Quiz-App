@@ -15,5 +15,8 @@ public class QuizResultDTO {
     private Integer maxPossibleScore; 
     private Double percentage; 
     private LocalDateTime completedAt;
+    private Integer timeTakenSeconds;
+    
     private List<QuestionResultDTO> questionResults;
+
 }

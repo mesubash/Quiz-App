@@ -7,6 +7,5 @@ import java.util.List;
 @Builder
 public class AnswerSubmissionDTO {
     private Long questionId;
-    private List<Long> selectedOptionIds; // For multiple choice
-    private String textAnswer; // For text-based answers (if supported)
+    private List<Long> selectedOptionIds; 
 }

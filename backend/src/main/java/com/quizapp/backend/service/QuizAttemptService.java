@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,8 +26,6 @@ public class QuizAttemptService {
     private final QuizAttemptRepository attemptRepository;
     private final QuizRepository quizRepository;
     private final UserRepository userRepository;
-    private final QuestionRepository questionRepository;
-    private final UserAnswerRepository userAnswerRepository;
 
     @Transactional
     public QuizAttemptDTO startAttempt(Long quizId) {
@@ -37,10 +36,7 @@ public class QuizAttemptService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
-        // Check if the user already has an active attempt for this quiz
-        List<QuizAttempt> activeAttempts = attemptRepository.findByUserId(user.getId()).stream()
-                .filter(attempt -> attempt.getQuiz().getId().equals(quizId) && attempt.getStatus() == AttemptStatus.IN_PROGRESS)
-                .collect(Collectors.toList());
+        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
 
         if (!activeAttempts.isEmpty()) {
             throw new BadRequestException("You already have an active attempt for this quiz.");
@@ -56,7 +52,6 @@ public class QuizAttemptService {
         QuizAttempt savedAttempt = attemptRepository.save(attempt);
         return mapToDTO(savedAttempt);
     }
-
     @Transactional
     public QuizResultDTO submitAttempt(Long attemptId, SubmissionDTO submission) {
         QuizAttempt attempt = attemptRepository.findById(attemptId)
@@ -70,7 +65,6 @@ public class QuizAttemptService {
             throw new BadRequestException("Submission must contain answers.");
         }
 
-        // Validate that all submitted answers belong to the quiz
         Set<Long> quizQuestionIds = attempt.getQuiz().getQuestions().stream()
                 .map(Question::getId)
                 .collect(Collectors.toSet());
@@ -81,10 +75,37 @@ public class QuizAttemptService {
             }
         }
 
-        // Calculate score
-        int score = calculateScore(attempt, submission);
+        int score = 0;
+        List<QuestionResultDTO> questionResults = new ArrayList<>();
 
-        // Update the attempt with the score and completion time
+        for (AnswerSubmissionDTO answer : submission.getAnswers()) {
+            Question question = attempt.getQuiz().getQuestions().stream()
+                    .filter(q -> q.getId().equals(answer.getQuestionId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Invalid question ID: " + answer.getQuestionId()));
+
+            Set<Long> correctOptionIds = question.getOptions().stream()
+                    .filter(Option::isCorrect)
+                    .map(Option::getId)
+                    .collect(Collectors.toSet());
+
+            Set<Long> selectedOptionIds = new HashSet<>(answer.getSelectedOptionIds());
+
+            boolean isCorrect = correctOptionIds.equals(selectedOptionIds);
+            if (isCorrect) {
+                score++;
+            }
+
+            questionResults.add(QuestionResultDTO.builder()
+                    .questionId(question.getId())
+                    .questionText(question.getText())
+                    .correct(isCorrect)
+                    .pointsAwarded(isCorrect ? 1 : 0)
+                    .correctOptionIds(new ArrayList<>(correctOptionIds))
+                    .selectedOptionIds(new ArrayList<>(selectedOptionIds))
+                    .build());
+        }
+
         long timeTaken = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
         attempt.setTimeTakenSeconds((int) timeTaken);
         attempt.setScore(score);
@@ -92,8 +113,7 @@ public class QuizAttemptService {
         attempt.setStatus(AttemptStatus.COMPLETED);
         attemptRepository.save(attempt);
 
-        // Calculate percentage
-        double percentage = (double) score / attempt.getQuiz().getQuestions().size() * 100;
+        double percentage = Math.round(((double) score / attempt.getQuiz().getQuestions().size() * 100) * 100.0) / 100.0;
 
         return QuizResultDTO.builder()
                 .attemptId(attemptId)
@@ -102,9 +122,13 @@ public class QuizAttemptService {
                 .score(score)
                 .maxPossibleScore(attempt.getQuiz().getQuestions().size())
                 .percentage(percentage)
+                .timeTakenSeconds((int) timeTaken) // Ensure this is set
                 .completedAt(attempt.getCompletedAt())
+                .questionResults(questionResults)
                 .build();
     }
+
+    
 
     @Transactional(readOnly = true)
     public List<QuizAttemptDTO> getUserAttempts() {
@@ -113,47 +137,6 @@ public class QuizAttemptService {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
-    private int calculateScore(QuizAttempt attempt, SubmissionDTO submission) {
-        int score = 0;
-    
-        for (AnswerSubmissionDTO answer : submission.getAnswers()) {
-            // Fetch the question from the database
-            Question question = questionRepository.findById(answer.getQuestionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
-    
-            // Get correct option IDs for the question
-            Set<Long> correctOptionIds = question.getOptions().stream()
-                    .filter(Option::isCorrect)
-                    .map(Option::getId)
-                    .collect(Collectors.toSet());
-    
-            // Get selected option IDs from the submission
-            Set<Long> selectedOptionIds = new HashSet<>(answer.getSelectedOptionIds());
-    
-            // Compare correct options with selected options
-            if (correctOptionIds.equals(selectedOptionIds)) {
-                question.setCorrectSelections(question.getCorrectSelections() + 1); // Increment correct selections
-                score++; // Increment the score for the correct answer
-            }
-    
-            // Increment the attempts for the question
-            question.setAttempts(question.getAttempts() + 1);
-    
-            // Save the updated question
-            questionRepository.save(question);
-    
-            // Save the user's answer
-            UserAnswer userAnswer = new UserAnswer();
-            userAnswer.setQuizAttempt(attempt);
-            userAnswer.setQuestion(question);
-            userAnswer.setSelectedAnswer(answer.getSelectedOptionIds());
-            userAnswerRepository.save(userAnswer);
-        }
-    
-        return score;
-    }
-
-
 
     private QuizAttemptDTO mapToDTO(QuizAttempt attempt) {
         return QuizAttemptDTO.builder()
@@ -163,7 +146,7 @@ public class QuizAttemptService {
                 .startedAt(attempt.getStartedAt())
                 .completedAt(attempt.getCompletedAt())
                 .score(attempt.getScore())
+                .status(attempt.getStatus().name())
                 .build();
     }
-    
 }
