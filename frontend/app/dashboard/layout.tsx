@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "../contexts/AuthContext"
-import { useTheme } from "../contexts/ThemeContext"
+import { useTheme } from "next-themes"
 import { Sidebar } from "../components/sidebar"
 import { Footer } from "../components/footer"
 import { Sun, Moon } from "lucide-react"
@@ -15,7 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { user } = useAuth()
-  const { isDarkMode, toggleTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -33,7 +33,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className={`min-h-screen flex ${isDarkMode ? "dark" : ""}`}>
+    <div className={`min-h-screen flex ${resolvedTheme === "dark" ? "dark" : ""}`}>
       <Sidebar onCollapsedChange={setSidebarCollapsed} />
 
       <div
@@ -43,11 +43,11 @@ export default function DashboardLayout({
       >
         <header className="sticky top-0 z-30 flex items-center justify-end h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
           <button
-            onClick={toggleTheme}
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             aria-label="Toggle theme"
           >
-            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
         </header>
 
