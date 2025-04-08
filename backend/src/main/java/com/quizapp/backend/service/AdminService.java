@@ -10,30 +10,58 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.exception.BadRequestException;
-import com.quizapp.backend.repository.UserRepository;
 import com.quizapp.backend.model.User;
+import com.quizapp.backend.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminService {
     private final UserRepository userRepository;
-
+    private final UserService userService;
+    
     @Transactional
-    public UserResponse getCurrentUser() {
+    public UserResponse getCurrentAdmin() {
         // Get the currently authenticated user
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+        return userService.mapToUserResponse(admin);
+    }
+
+    @Transactional
+    public Object getAllAdmins() {
+        // Get all users with ADMIN role from the repository
+        List<User> admins = userRepository.findAllByRole(User.Role.ADMIN);
+
+        // Map to UserResponse list
+        return mapToUserResponseList(admins);
+    }
+    
+    @Transactional
+    public Object getAllUsers() {
+        // Get all users from the repository
+        List<User> users = userRepository.findAll();
+
+        // Map to UserResponse list
+        return mapToUserResponseList(users);
+    }
+
+    @Transactional
+    public void deleteUser(String username) {
+        // Find the user by username
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new BadRequestException("User not found"));
 
-        return mapToUserResponse(user);
+        // Delete the user
+        userRepository.delete(user);
     }
 
-    
-
     @Transactional
-    public void deleteCurrentUser() {
+    public void deleteCurrentAdmin() {
         // Get the currently authenticated user
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
@@ -43,19 +71,11 @@ public class UserService {
         userRepository.delete(user);
     }
 
-
-
-
-    public UserResponse getUser(String username) {
-        // Find the user by username
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new BadRequestException("User not found"));
-
-        // Map to UserResponse
-        return mapToUserResponse(user);
+    private List<UserResponse> mapToUserResponseList(List<User> users) {
+        return users.stream()
+            .map(this::mapToUserResponse)
+            .collect(Collectors.toList());
     }
-
-
 
     UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
@@ -67,7 +87,4 @@ public class UserService {
             .role(user.getRole().name())
             .build();
     }
-
-   
-    
 }

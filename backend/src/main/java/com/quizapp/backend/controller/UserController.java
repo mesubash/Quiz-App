@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 
 
@@ -26,12 +25,7 @@ public class UserController {
     public ResponseEntity<UserResponse> getCurrentUser() {
         return ResponseEntity.ok(userService.getCurrentUser());
     }
-    @DeleteMapping("/deleteUser/{username}")
-    public ResponseEntity<String> deleteUser(@PathVariable String username) {
-        System.out.println("Deleting user: " + username);
-        userService.deleteUser(username);
-        return ResponseEntity.ok("User deleted successfully");
-    }
+    
     
     @DeleteMapping("/deleteCurrentUser")
     public ResponseEntity<String> deleteCurrentUser() {
@@ -40,14 +34,8 @@ public class UserController {
     }
 
 
-    @GetMapping("/getAllUsers")
-    public ResponseEntity<Object> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-    @GetMapping("/getUser/{username}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable String username) {
-        return ResponseEntity.ok(userService.getUser(username));
-    }
+    
+    
    
     
 }

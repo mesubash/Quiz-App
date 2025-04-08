@@ -105,7 +105,9 @@ public class QuizService {
 
     @Transactional
     public void deleteQuiz(Long id) {
-        quizRepository.deleteById(id);
+        Quiz quiz = quizRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Quiz not found with id: " + id));
+        quizRepository.delete(quiz);
     }
 
     private QuizDTO mapToDTO(Quiz quiz) {
