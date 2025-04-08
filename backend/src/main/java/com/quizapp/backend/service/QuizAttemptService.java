@@ -104,8 +104,7 @@ public class QuizAttemptService {
     
             // Compare correct options with selected options
             if (correctOptionIds.equals(selectedOptionIds)) {
-                // Increment correct selections if the answer is correct
-                question.setCorrectSelections(question.getCorrectSelections() + 1);
+                question.setCorrectSelections(question.getCorrectSelections() + 1); // Increment correct selections
                 score++; // Increment the score for the correct answer
             }
     

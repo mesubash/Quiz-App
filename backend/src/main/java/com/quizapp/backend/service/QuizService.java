@@ -8,6 +8,7 @@ import com.quizapp.backend.model.Question;
 import com.quizapp.backend.model.Option;
 import com.quizapp.backend.model.Quiz;
 import com.quizapp.backend.model.User;
+import com.quizapp.backend.model.enums.Difficulty;
 import com.quizapp.backend.repository.QuizRepository;
 import com.quizapp.backend.repository.UserRepository;
 
@@ -33,42 +34,46 @@ public class QuizService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
+    
         quiz.setCreatedBy(user);
         quiz.setTitle(quizDTO.getTitle());
         quiz.setDescription(quizDTO.getDescription());
         quiz.setTimeLimitMinutes(quizDTO.getTimeLimitMinutes());
         quiz.setPublished(false); // Default to unpublished
-
+    
         // Map questions from DTO to entity
         List<Question> questions = quizDTO.getQuestions().stream()
                 .map(questionDTO -> mapToQuestionEntity(questionDTO, quiz))
                 .collect(Collectors.toList());
         quiz.setQuestions(questions);
-
+    
+        // Calculate quiz difficulty
+        quiz.setDifficulty(calculateQuizDifficulty(questions));
+    
         Quiz savedQuiz = quizRepository.save(quiz);
         return mapToDTO(savedQuiz);
     }
 
     private Question mapToQuestionEntity(QuestionDTO questionDTO, Quiz quiz) {
-        Question question = new Question();
-        question.setText(questionDTO.getText());
-        question.setQuestionType(questionDTO.getQuestionType());
-        question.setDifficulty(questionDTO.getDifficulty());
-        question.setCorrectAnswer(questionDTO.getCorrectAnswer());
-        question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
-        question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
-        question.setExplanation(questionDTO.getExplanation());
-        question.setQuiz(quiz); // Set the quiz reference
-
-        // Map options from DTO to entity
+        Question question = Question.builder()
+                .text(questionDTO.getText())
+                .questionType(questionDTO.getQuestionType())
+                .difficulty(questionDTO.getDifficulty())
+                .explanation(questionDTO.getExplanation())
+                .quiz(quiz)
+                .build();
+    
         if (questionDTO.getOptions() != null) {
             List<Option> options = questionDTO.getOptions().stream()
-                    .map(optionDTO -> mapToOptionEntity(optionDTO, question))
-                    .collect(Collectors.toList());
+                    .map(optionDTO -> Option.builder()
+                            .optionText(optionDTO.getText())
+                            .isCorrect(optionDTO.getIsCorrect())
+                            .question(question)
+                            .build())
+                    .toList();
             question.setOptions(options);
         }
-
+    
         return question;
     }
 
@@ -98,9 +103,16 @@ public class QuizService {
     public QuizDTO updateQuiz(Long id, QuizDTO quizDTO) {
         Quiz quiz = quizRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+    
         quiz.setTitle(quizDTO.getTitle());
         quiz.setDescription(quizDTO.getDescription());
         quiz.setTimeLimitMinutes(quizDTO.getTimeLimitMinutes());
+    
+        // Recalculate difficulty based on updated questions
+        if (quiz.getQuestions() != null) {
+            quiz.setDifficulty(calculateQuizDifficulty(quiz.getQuestions()));
+        }
+    
         return mapToDTO(quizRepository.save(quiz));
     }
 
@@ -131,20 +143,52 @@ public class QuizService {
                 .text(question.getText())
                 .questionType(question.getQuestionType())
                 .difficulty(question.getDifficulty())
-                .correctAnswer(question.getCorrectAnswer())
+                .explanation(question.getExplanation())
                 .attempts(question.getAttempts())
                 .correctSelections(question.getCorrectSelections())
-                .explanation(question.getExplanation())
                 .quizId(question.getQuiz().getId())
+                .correctOptions(question.getOptions() != null ? question.getOptions().stream()
+                        .filter(Option::isCorrect)
+                        .map(option -> option.getId().intValue()) // Convert Long to Integer
+                        .collect(Collectors.toList()) : List.of()) // Handle null options
                 .options(question.getOptions() != null ? question.getOptions().stream()
                         .map(option -> OptionDTO.builder()
                                 .id(option.getId())
                                 .text(option.getOptionText())
                                 .isCorrect(option.isCorrect())
-                                .questionId(option.getQuestion().getId()) // Set the questionId
+                                .questionId(option.getQuestion().getId())
                                 .build())
-                        .toList() : null)
+                        .toList() : List.of()) // Handle null options
                 .build();
+    }
+
+    private Difficulty calculateQuizDifficulty(List<Question> questions) {
+        if (questions.isEmpty()) {
+            return Difficulty.UNASSIGNED;
+        }
+
+        boolean hasEasy = false;
+        boolean hasMedium = false;
+        boolean hasHard = false;
+
+        for (Question question : questions) {
+            switch (question.getDifficulty()) {
+                case EASY -> hasEasy = true;
+                case MEDIUM -> hasMedium = true;
+                case HARD -> hasHard = true;
+                default -> throw new IllegalArgumentException("Unexpected value: " + question.getDifficulty());
+            }
+        }
+
+        if (hasHard && !hasMedium && !hasEasy) {
+            return Difficulty.HARD;
+        } else if (hasMedium || (hasEasy && hasHard)) {
+            return Difficulty.MEDIUM;
+        } else if (hasEasy) {
+            return Difficulty.EASY;
+        }
+
+        return Difficulty.UNASSIGNED;
     }
 
     private OptionDTO mapToOptionDTO(Option option) {

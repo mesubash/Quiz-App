@@ -22,19 +22,17 @@ public class QuestionDTO {
     @NotBlank(message = "Question text cannot be blank")
     private String text;
 
-    private String correctAnswer;
+    private List<Integer> selectedOptions;
+    private List<Integer> correctOptions;
 
     private QuestionType questionType;
 
     private Difficulty difficulty;
 
     private String explanation;
-    
+
     private Integer attempts;
     private Integer correctSelections;
-
-    private Integer points; //can be used as sum up while user gives the corrent answer in a quiz
-
     private Long quizId;
 
     private List<OptionDTO> options;

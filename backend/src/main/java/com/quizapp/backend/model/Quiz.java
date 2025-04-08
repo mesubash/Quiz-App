@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
+import com.quizapp.backend.model.enums.Difficulty;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -35,6 +38,10 @@ public class Quiz {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Difficulty difficulty = Difficulty.UNASSIGNED;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -2,6 +2,7 @@ package com.quizapp.backend.dto;
 
 import java.util.List;
 
+import com.quizapp.backend.model.enums.Difficulty;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
@@ -21,5 +22,6 @@ public class QuizDTO {
     private Integer timeLimitMinutes;
     private Boolean isPublished;
     private Long createdById;
+    private Difficulty difficulty;
     private List<QuestionDTO> questions; 
 }

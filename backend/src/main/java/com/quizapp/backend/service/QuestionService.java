@@ -30,20 +30,40 @@ public class QuestionService {
     }
 
     @Transactional
-    public QuestionDTO updateQuestion(Long questionId, QuestionDTO questionDTO) {
-        Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+public QuestionDTO updateQuestion(Long questionId, QuestionDTO questionDTO) {
+    // Fetch the existing question
+    Question question = questionRepository.findById(questionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
-        question.setText(questionDTO.getText());
-        question.setQuestionType(questionDTO.getQuestionType());
-        question.setCorrectAnswer(questionDTO.getCorrectAnswer());
-        question.setDifficulty(questionDTO.getDifficulty());
-        question.setExplanation(questionDTO.getExplanation());
-        question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
-        question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
-        return mapToDTO(questionRepository.save(question));
+    // Update basic fields
+    question.setText(questionDTO.getText());
+    question.setQuestionType(questionDTO.getQuestionType());
+    question.setDifficulty(questionDTO.getDifficulty());
+    question.setExplanation(questionDTO.getExplanation());
+    question.setAttempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0); // Default to 0
+    question.setCorrectSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0); // Default to 0
+
+    // Update options
+    if (questionDTO.getOptions() != null) {
+        // Clear existing options
+        question.getOptions().clear();
+
+        // Add updated options
+        List<Option> updatedOptions = questionDTO.getOptions().stream()
+                .map(optionDTO -> Option.builder()
+                        .id(optionDTO.getId()) // Use existing ID if present
+                        .optionText(optionDTO.getText())
+                        .isCorrect(optionDTO.getIsCorrect())
+                        .question(question) // Link the option to the question
+                        .build())
+                .toList();
+
+        question.getOptions().addAll(updatedOptions);
     }
 
+    // Save the updated question
+    return mapToDTO(questionRepository.save(question));
+}
     @Transactional
     public void deleteQuestion(Long questionId) {
         questionRepository.deleteById(questionId);
@@ -59,51 +79,56 @@ public class QuestionService {
         return mapToDTO(savedQuestion);
     }
 
+
+    
+
     private QuestionDTO mapToDTO(Question question) {
         return QuestionDTO.builder()
                 .id(question.getId())
                 .text(question.getText())
                 .questionType(question.getQuestionType())
-                .correctAnswer(question.getCorrectAnswer())
                 .difficulty(question.getDifficulty())
                 .explanation(question.getExplanation())
-                .attempts(question.getAttempts()) // Include attempts
-                .correctSelections(question.getCorrectSelections()) // Include correctSelections
+                .attempts(question.getAttempts())
+                .correctSelections(question.getCorrectSelections())
                 .quizId(question.getQuiz().getId())
+                .selectedOptions(null) // This will be populated during quiz submission
+                .correctOptions(question.getOptions() != null ? question.getOptions().stream()
+                .filter(Option::isCorrect)
+                .map(option -> option.getId().intValue()) // Convert Long to Integer
+                .collect(Collectors.toList()) : List.of()) // Handle null options
                 .options(question.getOptions() != null ? question.getOptions().stream()
                         .map(option -> OptionDTO.builder()
                                 .id(option.getId())
                                 .text(option.getOptionText())
                                 .isCorrect(option.isCorrect())
-                                .questionId(option.getQuestion().getId()) // Set the questionId
+                                .questionId(option.getQuestion().getId())
                                 .build())
-                        .toList() : null)
+                        .toList() : List.of()) // Handle null options
                 .build();
     }
 
     private Question mapToEntity(QuestionDTO questionDTO, Quiz quiz) {
         Question question = Question.builder()
                 .text(questionDTO.getText())
-                .correctAnswer(questionDTO.getCorrectAnswer())
                 .questionType(questionDTO.getQuestionType())
                 .difficulty(questionDTO.getDifficulty())
                 .explanation(questionDTO.getExplanation())
-                .attempts(questionDTO.getAttempts() != null ? questionDTO.getAttempts() : 0) // Default to 0
-                .correctSelections(questionDTO.getCorrectSelections() != null ? questionDTO.getCorrectSelections() : 0) // Default to 0
                 .quiz(quiz)
                 .build();
-
+    
         if (questionDTO.getOptions() != null) {
             List<Option> options = questionDTO.getOptions().stream()
                     .map(optionDTO -> Option.builder()
                             .optionText(optionDTO.getText())
-                            .isCorrect(optionDTO.getIsCorrect())
+                            .isCorrect(optionDTO.getIsCorrect()) // Map isCorrect flag
                             .question(question)
                             .build())
                     .toList();
             question.setOptions(options);
         }
-
+    
         return question;
     }
+    
 }

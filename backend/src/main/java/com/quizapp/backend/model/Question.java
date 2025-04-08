@@ -38,14 +38,13 @@ public class Question {
     private Integer attempts = 0;
     private Integer correctSelections = 0;
 
-
     @Enumerated(EnumType.STRING)
     private Difficulty difficulty = Difficulty.UNASSIGNED;
 
     private String explanation;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<Option> options;
+    private List<Option> options = List.of();
 
     @CreationTimestamp
     private LocalDateTime createdAt;
