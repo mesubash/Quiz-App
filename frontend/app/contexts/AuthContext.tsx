@@ -15,6 +15,7 @@ type AuthContextType = {
   user: User | null
   login: (email: string, password: string, role: "admin" | "user") => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
+  resetPassword: (email: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   isLoading: boolean
@@ -108,23 +109,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const logout = async () => {
+  const resetPassword = async (email: string) => {
     try {
       setIsLoading(true)
-      await authService.logout()
+      await authService.resetPassword(email)
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error("Password reset failed:", error)
+      throw new Error("Password reset failed. Please try again.")
     } finally {
-      setUser(null)
       setIsLoading(false)
-      router.push("/login")
     }
   }
 
+  const logout = () => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    setUser(null)
+    router.push("/login")
+  }
+
+  const value = {
+    user,
+    login,
+    register,
+    resetPassword,
+    logout,
+    isAuthenticated,
+    isLoading,
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated, isLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
 }
-

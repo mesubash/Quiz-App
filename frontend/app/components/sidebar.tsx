@@ -20,6 +20,8 @@ import {
   Moon,
   MoreVertical,
   MessageSquare,
+  LayoutDashboard,
+  BarChart,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -65,10 +67,21 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
   }
 
   const menuItems = [
-    { path: "/dashboard", label: "Dashboard", icon: <Home className="h-5 w-5" /> },
-    { path: "/dashboard/quizzes", label: "Quizzes", icon: <BookOpen className="h-5 w-5" /> },
-    { path: "/dashboard/leaderboard", label: "Leaderboard", icon: <Trophy className="h-5 w-5" /> },
-    { path: "/dashboard/help", label: "Help", icon: <HelpCircle className="h-5 w-5" /> },
+    {
+      path: "/dashboard",
+      label: "Dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      path: "/dashboard/quizzes",
+      label: "Quizzes",
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
+      path: "/dashboard/leaderboard",
+      label: "Leaderboard",
+      icon: <BarChart className="h-5 w-5" />,
+    },
   ]
 
   return (

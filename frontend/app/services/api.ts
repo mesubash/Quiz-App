@@ -49,11 +49,11 @@ export const authService = {
       localStorage.setItem("user", JSON.stringify(response.data.user))
 
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error)
 
       // For development/testing, use mock data if backend is not available
-      if (process.env.NODE_ENV === "development" || error.message === "Network Error") {
+      if (process.env.NODE_ENV === "development" || (error as any).message === "Network Error") {
         console.warn("Using mock data for login in development mode")
         const mockResponse = {
           user: {
@@ -84,7 +84,7 @@ export const authService = {
       localStorage.setItem("user", JSON.stringify(response.data.user))
 
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Registration error:", error)
 
       // For development/testing, use mock data if backend is not available
@@ -110,11 +110,28 @@ export const authService = {
     }
   },
 
+  resetPassword: async (email: string) => {
+    try {
+      const response = await api.post("/auth/reset-password", { email })
+      return response.data
+    } catch (error: unknown) {
+      console.error("Password reset error:", error)
+
+      // For development/testing, simulate success if backend is not available
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Using mock response for password reset in development mode")
+        return { message: "Password reset email sent successfully" }
+      }
+
+      throw error
+    }
+  },
+
   logout: async () => {
     try {
       // Call logout endpoint if your backend requires it
       await api.post("/auth/logout")
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Logout error:", error)
     } finally {
       // Always clear local storage
@@ -127,9 +144,9 @@ export const authService = {
     try {
       const response = await api.get("/auth/me")
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       // Check if it's a network error (backend not available)
-      if (error.message === "Network Error") {
+      if ((error as any).message === "Network Error") {
         console.warn("Backend not available, using fallback for development")
 
         // For development/preview, check if we have a token in localStorage
@@ -154,7 +171,7 @@ export const quizService = {
     try {
       const response = await api.get("/quizzes")
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching quizzes:", error)
 
       // For development/testing, use mock data if backend is not available
@@ -171,7 +188,7 @@ export const quizService = {
     try {
       const response = await api.get(`/quizzes/${id}`)
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error fetching quiz ${id}:`, error)
 
       // For development/testing, use mock data if backend is not available
@@ -188,7 +205,7 @@ export const quizService = {
     try {
       const response = await api.post("/quizzes", quizData)
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error creating quiz:", error)
       throw error
     }
@@ -198,7 +215,7 @@ export const quizService = {
     try {
       const response = await api.put(`/quizzes/${id}`, quizData)
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error updating quiz ${id}:`, error)
       throw error
     }
@@ -208,7 +225,7 @@ export const quizService = {
     try {
       await api.delete(`/quizzes/${id}`)
       return true
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error deleting quiz ${id}:`, error)
       throw error
     }
@@ -218,7 +235,7 @@ export const quizService = {
     try {
       const response = await api.post(`/quizzes/${quizId}/submit`, { answers })
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error submitting answers for quiz ${quizId}:`, error)
 
       // For development/testing, use mock data if backend is not available
@@ -260,7 +277,7 @@ export const userService = {
     try {
       const response = await api.get("/users/profile")
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching user profile:", error)
 
       // For development/testing, use mock data if backend is not available
@@ -283,7 +300,7 @@ export const userService = {
     try {
       const response = await api.get("/users/quiz-history")
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching quiz history:", error)
 
       // For development/testing, use mock data if backend is not available
@@ -304,7 +321,7 @@ export const userService = {
     try {
       const response = await api.get("/users/leaderboard")
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching leaderboard:", error)
 
       // For development/testing, use mock data if backend is not available
@@ -327,7 +344,7 @@ export const userService = {
     try {
       const response = await api.get("/admin/users")
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching users:", error)
       throw error
     }
@@ -337,7 +354,7 @@ export const userService = {
     try {
       const response = await api.put(`/admin/users/${userId}/status`, { status })
       return response.data
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error updating user ${userId} status:`, error)
       throw error
     }
@@ -453,4 +470,3 @@ const mockQuizzes = [
 ]
 
 export default api
-
