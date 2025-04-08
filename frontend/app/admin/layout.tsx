@@ -36,17 +36,13 @@ export default function AdminLayout({
   }
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? "dark" : ""}`}>
+    <div className={`min-h-screen flex ${isDarkMode ? "dark" : ""}`}>
       <AdminSidebar onCollapsedChange={setSidebarCollapsed} />
 
       <div
-        className="transition-all duration-300 ease-in-out min-h-screen flex flex-col w-full"
-        style={{
-          marginLeft: sidebarCollapsed ? "5rem" : "16rem",
-          "@media (max-width: 1024px)": {
-            marginLeft: "0",
-          },
-        }}
+        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out
+          ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}
+          ml-0 w-full overflow-x-hidden`}
       >
         <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
@@ -59,7 +55,7 @@ export default function AdminLayout({
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
+        <main className="flex-1 bg-gray-50 dark:bg-gray-900 p-4 md:p-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
 
@@ -68,4 +64,3 @@ export default function AdminLayout({
     </div>
   )
 }
-
