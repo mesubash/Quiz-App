@@ -53,7 +53,7 @@ public ResponseEntity<AuthResponse> authenticateUser(@Valid @RequestBody AuthReq
         return ResponseEntity.ok("User logged out successfully.");
     }
     
-    @PostMapping("/refresh")
+    @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponse> refreshAccessToken(HttpServletRequest request) {
         String refreshToken = null;
         if (request.getCookies() != null) {

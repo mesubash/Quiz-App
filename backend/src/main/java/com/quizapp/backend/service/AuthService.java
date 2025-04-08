@@ -156,6 +156,7 @@ public class AuthService {
         String token = getCurrentToken(request);
         if (token != null) {
             invalidateToken(token);
+            
         }
     }
 
