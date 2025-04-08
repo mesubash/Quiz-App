@@ -13,6 +13,7 @@
 - Technology Stack
 - API Documentation
 - Setup & Installation
+  - Secret Management
 - Database Schema
 - Security Implementation
 - Deployment
@@ -96,7 +97,7 @@ This backend is built using **Spring Boot** and follows a modular architecture t
 POST /api/auth/register
 POST /api/auth/login
 POST /api/auth/logout
-```
+  ```properties
 
 ### Quiz Management
 
@@ -152,7 +153,7 @@ GET    /api/leaderboard/quiz/{quizId}
    cd backend
    ```
 
-2. Configure the database in application.properties:
+2. Configure the database in `application.properties`:
 
    ```properties
    spring.datasource.url=jdbc:mysql://localhost:3306/quiz_app
@@ -171,9 +172,74 @@ GET    /api/leaderboard/quiz/{quizId}
 4. JWT Configuration:
 
    ```properties
-   app.jwt-secret=your-256-bit-secret
-   app.jwt-expiration-milliseconds=86400000 # 24 hours
+   app.jwt-secret=${JWT_SECRET}
+   app.jwt-expiration-milliseconds=${JWT_EXPIRATION}
+   app.jwt-refresh-expiration-milliseconds=${JWT_REFRESH_EXPIRATION}
    ```
+
+---
+
+### Secret Management
+
+#### Why Secrets Are Important
+
+Secrets like `JWT_SECRET` are critical for securing your application. They are used for signing JWT tokens and ensuring the integrity of sensitive operations. Exposing these secrets can lead to security vulnerabilities.
+
+#### 1. Generating a Secure Secret
+
+- **On Windows**:
+  1. Open **PowerShell**.
+  2. Run the following command to generate a 32-byte Base64-encoded secret:
+
+     ```powershell
+     [convert]::ToBase64String((1..32 | ForEach-Object {Get-Random -Maximum 256}))
+     ```
+
+- **On Linux/Mac**:
+  1. Open your terminal.
+  2. Run the following command to generate a 32-byte Base64-encoded secret:
+
+     ```bash
+     openssl rand -base64 32
+     ```
+
+#### 2. Storing the Secret
+
+- **Using Environment Variables**:
+  - **Windows**:
+
+    ```cmd
+    setx JWT_SECRET dGhpc19pc19hX3ZhbGlkX2Jhc2U2NF9zZWNyZXQ=
+    setx JWT_EXPIRATION 3600000
+    setx JWT_REFRESH_EXPIRATION 604800000
+    ```
+
+  - **Linux/Mac**:
+
+    ```bash
+    export JWT_SECRET=your_base64_secret
+    ```
+
+- **Using a `.env` File**:
+  1. Create a `.env` file in the root of your project.
+  2. Add the following content:
+
+     ```env
+     JWT_SECRET=your_base64_secret
+     ```
+
+  3. Add `.env` to your .gitignore file to prevent it from being committed to version control.
+
+#### 3. Configuring the Application
+
+- Update `application.properties`:
+
+  ```properties
+  app.jwt-secret=${JWT_SECRET}
+
+  ```
+
+---
 
 ### Running the Application
 
@@ -185,7 +251,7 @@ mvn spring-boot:run
 
 ## Database Schema
 
-The database schema is defined in schema.sql. Below are the key tables:
+The database schema is defined in `schema.sql`. Below are the key tables:
 
 - **users**: Stores user accounts and credentials.
 - **quizzes**: Stores quiz metadata.
