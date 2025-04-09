@@ -1,14 +1,18 @@
 package com.quizapp.backend.service;
 
 import com.quizapp.backend.dto.QuizDTO;
+import com.quizapp.backend.dto.QuizResultDTO;
 import com.quizapp.backend.dto.QuestionDTO;
+import com.quizapp.backend.dto.QuestionResultDTO;
 import com.quizapp.backend.dto.OptionDTO;
 import com.quizapp.backend.exception.ResourceNotFoundException;
 import com.quizapp.backend.model.Question;
 import com.quizapp.backend.model.Option;
 import com.quizapp.backend.model.Quiz;
+import com.quizapp.backend.model.QuizAttempt;
 import com.quizapp.backend.model.User;
 import com.quizapp.backend.model.enums.Difficulty;
+import com.quizapp.backend.repository.QuizAttemptRepository;
 import com.quizapp.backend.repository.QuizRepository;
 import com.quizapp.backend.repository.UserRepository;
 
@@ -22,11 +26,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class QuizService {
 
     private final QuizRepository quizRepository;
     private final UserRepository userRepository;
+    private final QuizAttemptRepository quizAttemptRepository;
 
     @Transactional
     public QuizDTO createQuiz(QuizDTO quizDTO) {
@@ -86,12 +91,43 @@ public class QuizService {
                 .collect(Collectors.toList());
     }
 
+
     @Transactional(readOnly = true)
     public QuizDTO getQuizById(Long id) {
         Quiz quiz = quizRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
         return mapToDTO(quiz);
     }
+    public List<QuizResultDTO> getQuizHistoryByQuizId(Long quizId) {
+        List<QuizAttempt> attempts = quizAttemptRepository.findByQuizId(quizId);
+    
+        return attempts.stream()
+                .map(attempt -> QuizResultDTO.builder()
+                        .attemptId(attempt.getId())
+                        .quizId(attempt.getQuiz().getId())
+                        .quizTitle(attempt.getQuiz().getTitle())
+                        .score(attempt.getScore())
+                        .maxPossibleScore(attempt.getQuiz().getQuestions().size()) // Use the number of questions as max score
+                        .percentage((attempt.getScore() * 100.0) / attempt.getQuiz().getQuestions().size())
+                        .completedAt(attempt.getCompletedAt())
+                        .timeTakenSeconds(attempt.getTimeTakenSeconds())
+                        .questionResults(attempt.getUserAnswers().stream()
+                                .map(answer -> QuestionResultDTO.builder()
+                                        .questionId(answer.getQuestion().getId())
+                                        .questionText(answer.getQuestion().getText())
+                                        .selectedOptionIds(List.of(answer.getOption().getId())) // Fix selectedOptionIds
+                                        .correctOptionIds(answer.getQuestion().getOptions().stream()
+                                                .filter(Option::isCorrect)
+                                                .map(Option::getId)
+                                                .collect(Collectors.toList()))
+                                        .correct(answer.isCorrect())
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+
 
     @Transactional
     public QuizDTO updateQuiz(Long id, QuizDTO quizDTO) {
@@ -189,5 +225,6 @@ public class QuizService {
             return Difficulty.EASY;
         }
     }
+
     
 }

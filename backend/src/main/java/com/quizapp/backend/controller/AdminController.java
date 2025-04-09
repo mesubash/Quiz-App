@@ -33,7 +33,6 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAllAdmins());
     }
     
-    
 
     @GetMapping("/getUser/{username}")
     public ResponseEntity<UserResponse> getUser(@PathVariable String username) {
@@ -48,7 +47,7 @@ public class AdminController {
         return ResponseEntity.ok("User deleted successfully");
     }
 
-    @GetMapping("/getCurrentAdmin")
+    @GetMapping("/profile")
     public ResponseEntity<UserResponse> getCurrentUser() {
         return ResponseEntity.ok(userService.getCurrentUser());
     }

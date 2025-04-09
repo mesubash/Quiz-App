@@ -76,7 +76,7 @@ public class JwtTokenProvider {
                     .expiration(expireDate)
                     .signWith(getSigningKey())
                     .compact();
-                }
+    }
     public boolean validateRefreshToken(String token) {
         
         try {

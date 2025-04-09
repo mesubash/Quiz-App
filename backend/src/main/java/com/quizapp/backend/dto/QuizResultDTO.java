@@ -11,12 +11,10 @@ public class QuizResultDTO {
     private Long attemptId;
     private Long quizId;
     private String quizTitle;
-    private Integer score; 
-    private Integer maxPossibleScore; 
-    private Double percentage; 
+    private Integer score;
+    private Integer maxPossibleScore;
+    private Double percentage;
     private LocalDateTime completedAt;
     private Integer timeTakenSeconds;
-    
     private List<QuestionResultDTO> questionResults;
-
 }

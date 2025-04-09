@@ -52,6 +52,8 @@ public class AuthService {
 
             // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            
+          
 
             // Generate JWT tokens
             String accessToken = tokenProvider.generateToken(authentication);

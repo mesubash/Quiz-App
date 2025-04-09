@@ -1,6 +1,7 @@
 package com.quizapp.backend.controller;
 
 import com.quizapp.backend.dto.QuizDTO;
+import com.quizapp.backend.dto.QuizResultDTO;
 import com.quizapp.backend.service.QuizService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class QuizController {
         return ResponseEntity.ok(quizService.createQuiz(quizDTO));
     }
 
-    @GetMapping("/all")
+    @GetMapping
     public ResponseEntity<List<QuizDTO>> getAllQuizzes() {
         return ResponseEntity.ok(quizService.getAllQuizzes());
     }
@@ -46,5 +47,10 @@ public class QuizController {
     public ResponseEntity<Void> deleteQuiz(@PathVariable Long id) {
         quizService.deleteQuiz(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/history/{id}")
+    public ResponseEntity<List<QuizResultDTO>> getQuizHistoryByQuizId(@PathVariable Long quizId) {
+        return ResponseEntity.ok(quizService.getQuizHistoryByQuizId(quizId));
     }
 }
