@@ -37,13 +37,17 @@ public class AuthService {
 
     @Transactional
     public AuthResponse authenticateUser(AuthRequest authRequest) {
+        // Check if the user exists by email
+        User user = userRepository.findByEmail(authRequest.getEmail())
+                .orElseThrow(() -> new BadRequestException("No user found with the provided email"));
+
         try {
             // Authenticate user credentials
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    authRequest.getUsername(),
-                    authRequest.getPassword()
-                )
+                    new UsernamePasswordAuthenticationToken(
+                            user.getUsername(), 
+                            authRequest.getPassword()
+                    )
             );
 
             // Set authentication in security context
@@ -53,31 +57,28 @@ public class AuthService {
             String accessToken = tokenProvider.generateToken(authentication);
             String refreshToken = tokenProvider.generateRefreshToken(authentication);
 
-           // Store refresh token in Redis
+            // Store refresh token in Redis
             redisTemplate.opsForValue().set(
-                "refresh:" + refreshToken,
-                authentication.getName(),
-                tokenProvider.getRefreshTokenExpirationInMs(),
-                TimeUnit.MILLISECONDS
+                    "refresh:" + refreshToken,
+                    authentication.getName(),
+                    tokenProvider.getRefreshTokenExpirationInMs(),
+                    TimeUnit.MILLISECONDS
             );
 
-            // Get user details
-            User user = userRepository.findByUsername(authRequest.getUsername())
-                .orElseThrow(() -> new BadRequestException("User not found"));
-
+            // Return the authentication response
             return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(tokenProvider.getJwtExpirationInMs())
-                .user(mapToUserResponse(user))
-                .build();
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .tokenType("Bearer")
+                    .expiresIn(tokenProvider.getJwtExpirationInMs())
+                    .user(mapToUserResponse(user))
+                    .build();
 
         } catch (Exception e) {
-            throw new BadRequestException("Invalid username/password");
+            throw new BadRequestException("Invalid email or password");
         }
-
     }
+
     @Transactional
     public AuthResponse refreshAccessToken(String refreshToken) {
         // Validate the refresh token

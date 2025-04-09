@@ -28,19 +28,19 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/login")
-public ResponseEntity<AuthResponse> authenticateUser(@Valid @RequestBody AuthRequest authRequest, HttpServletResponse response) {
-    AuthResponse authResponse = authService.authenticateUser(authRequest);
+    public ResponseEntity<AuthResponse> authenticateUser(@Valid @RequestBody AuthRequest authRequest, HttpServletResponse response) {
+        AuthResponse authResponse = authService.authenticateUser(authRequest);
 
-    // Set the refresh token as an HTTP-only cookie
-    Cookie refreshTokenCookie = new Cookie("refreshToken", authResponse.getRefreshToken());
-    refreshTokenCookie.setHttpOnly(true);
-    refreshTokenCookie.setSecure(true); // Use HTTPS in production
-    refreshTokenCookie.setPath("/api/auth/refresh");
-    refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-    response.addCookie(refreshTokenCookie);
+        // Set the refresh token as an HTTP-only cookie
+        Cookie refreshTokenCookie = new Cookie("refreshToken", authResponse.getRefreshToken());
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true); // Use HTTPS in production
+        refreshTokenCookie.setPath("/api/auth/refresh");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+        response.addCookie(refreshTokenCookie);
 
-    return ResponseEntity.ok(authResponse);
-}
+        return ResponseEntity.ok(authResponse);
+    }
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
