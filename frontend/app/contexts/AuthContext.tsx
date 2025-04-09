@@ -7,15 +7,14 @@ import { authService } from "../services/api"
 type User = {
   id: string
   email: string
-  name: string
-  role: "admin" | "user"
+  username: string
+  role: string
 }
 
 type AuthContextType = {
   user: User | null
-  login: (email: string, password: string, role: "admin" | "user") => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
-  resetPassword: (email: string) => Promise<void>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
+  register: (username: string, email: string, password: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   isLoading: boolean
@@ -37,92 +36,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for saved user on client-side only
-    const checkAuth = async () => {
-      try {
-        setIsLoading(true)
-
-        // First check if we have a user in localStorage
-        const savedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null
-        if (savedUser) {
-          setUser(JSON.parse(savedUser))
-        } else {
-          // If no user in localStorage, try to verify with backend
-          try {
-            const userData = await authService.checkAuth()
-            setUser(userData)
-            localStorage.setItem("user", JSON.stringify(userData))
-          } catch (error) {
-            // If verification fails, clear any existing tokens
-            console.warn("Auth verification failed, clearing tokens", error)
-            localStorage.removeItem("token")
-            localStorage.removeItem("user")
-            setUser(null)
-          }
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error)
-        setUser(null)
-      } finally {
-        setIsLoading(false)
-      }
+    // Initialize user state from localStorage
+    const savedUser = localStorage.getItem("user")
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
     }
-
-    checkAuth()
+    setIsLoading(false) // Mark loading as complete
   }, [])
 
-  const isAuthenticated = !!user
-
-  const login = async (email: string, password: string, role: "admin" | "user") => {
-    try {
-      setIsLoading(true)
-
-      const response = await authService.login(email, password, role)
-      setUser(response.user)
-
-      // Redirect based on role
-      if (role === "admin") {
-        router.push("/admin")
-      } else {
-        router.push("/dashboard")
-      }
-    } catch (error) {
-      console.error("Login failed:", error)
-      throw new Error("Login failed. Please check your credentials.")
-    } finally {
-      setIsLoading(false)
+  const login = async (email: string, password: string, rememberMe: boolean = false) => {
+    const data = await authService.login(email, password)
+    setUser(data.user)
+  
+    // Save user and tokens to localStorage
+    localStorage.setItem("accessToken", data.accessToken)
+    localStorage.setItem("refreshToken", data.refreshToken)
+    localStorage.setItem("user", JSON.stringify(data.user))
+  
+    // Save email to localStorage if "Remember Me" is checked
+    if (rememberMe) {
+      localStorage.setItem("rememberedEmail", email)
+    } else {
+      localStorage.removeItem("rememberedEmail")
     }
-  }
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      setIsLoading(true)
-
-      const response = await authService.register(name, email, password)
-      setUser(response.user)
+  
+    // Redirect based on role and fetch profile
+    if (data.user.role === "ADMIN") {
+      await authService.fetchProfile("/admin/profile") // Fetch admin profile
+      router.push("/admin")
+    } else {
+      await authService.fetchProfile("/user/profile") // Fetch user profile
       router.push("/dashboard")
-    } catch (error) {
-      console.error("Registration failed:", error)
-      throw new Error("Registration failed. Please try again.")
-    } finally {
-      setIsLoading(false)
     }
   }
-
-  const resetPassword = async (email: string) => {
-    try {
-      setIsLoading(true)
-      await authService.resetPassword(email)
-    } catch (error) {
-      console.error("Password reset failed:", error)
-      throw new Error("Password reset failed. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
+  const register = async (username: string, email: string, password: string) => {
+    await authService.register(username, email, password)
+    router.push("/login")
   }
 
   const logout = () => {
-    localStorage.removeItem("token")
+    // Clear user and tokens from localStorage
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("refreshToken")
     localStorage.removeItem("user")
     setUser(null)
     router.push("/login")
@@ -132,15 +87,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     login,
     register,
-    resetPassword,
     logout,
-    isAuthenticated,
+    isAuthenticated: !!user,
     isLoading,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

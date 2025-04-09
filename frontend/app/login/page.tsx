@@ -11,7 +11,6 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const [role, setRole] = useState<"user" | "admin">("user")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -30,15 +29,9 @@ export default function Login() {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-
+  
     try {
-      await login(email, password, role)
-      if (rememberMe) {
-        localStorage.setItem("rememberedEmail", email)
-      } else {
-        localStorage.removeItem("rememberedEmail")
-      }
-      router.push(role === "admin" ? "/admin" : "/dashboard")
+      await login(email, password, rememberMe)
     } catch (err) {
       setError("Failed to login. Please check your credentials.")
     } finally {
@@ -67,35 +60,7 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Login As
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setRole("user")}
-                  className={`py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-                    role === "user"
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  User
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole("admin")}
-                  className={`py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-                    role === "admin"
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  Admin
-                </button>
-              </div>
-            </div>
+
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
