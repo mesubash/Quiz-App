@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ThemeProvider } from "./contexts/ThemeContext"
+import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { AuthProvider } from "./contexts/AuthContext"
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -22,9 +22,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeProvider>
+    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>{children}</AuthProvider>
-    </ThemeProvider>
+    </NextThemesProvider>
   )
 }
-

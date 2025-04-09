@@ -1,30 +1,21 @@
-import type React from "react"
+import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { Providers } from "./providers"
 import "./globals.css"
+import { Providers } from "./providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "Quiz App",
-  description: "An interactive quiz application",
-    generator: 'v0.dev'
+export const metadata: Metadata = {
+  title: "QuizMaster - Interactive Learning Platform",
+  description: "Test your knowledge with interactive quizzes across various topics.",
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
     </html>
   )
 }
-
-
-
-import './globals.css'

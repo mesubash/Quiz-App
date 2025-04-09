@@ -1,5 +1,9 @@
 "use client"
 
+// This file is now deprecated. We're using next-themes instead.
+// Keeping this file temporarily for reference during migration.
+// TODO: Remove this file once all components are migrated to next-themes.
+
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
 type ThemeContextType = {
@@ -7,7 +11,31 @@ type ThemeContextType = {
   toggleTheme: () => void
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+const ThemeContext = createContext<ThemeContextType | null>(null)
+
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Check system preference
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    setIsDarkMode(prefersDark)
+
+    // Apply theme
+    document.documentElement.classList.toggle("dark", prefersDark)
+  }, [])
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode)
+    document.documentElement.classList.toggle("dark")
+  }
+
+  return (
+    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  )
+}
 
 export const useTheme = () => {
   const context = useContext(ThemeContext)
@@ -16,34 +44,3 @@ export const useTheme = () => {
   }
   return context
 }
-
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false)
-
-  useEffect(() => {
-    // Initialize theme from localStorage on client-side only
-    const savedTheme = typeof window !== "undefined" ? localStorage.getItem("theme") : null
-    const prefersDark =
-      typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)").matches : false
-    setIsDarkMode(savedTheme === "dark" || (!savedTheme && prefersDark))
-  }, [])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (isDarkMode) {
-        document.documentElement.classList.add("dark")
-        localStorage.setItem("theme", "dark")
-      } else {
-        document.documentElement.classList.remove("dark")
-        localStorage.setItem("theme", "light")
-      }
-    }
-  }, [isDarkMode])
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
-  }
-
-  return <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>{children}</ThemeContext.Provider>
-}
-
