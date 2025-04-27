@@ -6,8 +6,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "../../contexts/AuthContext"
 import { useTheme } from "next-themes"
-import { AdminSidebar } from "../../components/admin-sidebar"
+import { AdminSidebar } from "./admin-sidebar"
 import { Footer } from "../../components/footer"
+
 
 export default function AdminLayout({
   children,

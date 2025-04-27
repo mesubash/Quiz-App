@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useAuth } from "@/app/users/contexts/AuthContext"
+import { useAuth } from "../../../contexts/AuthContext"
 import { Brain, Search, Users, Clock, Tag, ChevronRight, Filter } from "lucide-react"
 import { ThemeToggle } from "@/app/components/theme-toggle"
 

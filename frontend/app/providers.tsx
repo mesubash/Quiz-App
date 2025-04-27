@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { AuthProvider } from "./contexts/AuthContext"
+import { LogoutProvider } from "./contexts/LogoutContext"
 import { useTheme } from "next-themes"
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -24,7 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider> <LogoutProvider>{children}</LogoutProvider></AuthProvider>
     </NextThemesProvider>
   )
 }

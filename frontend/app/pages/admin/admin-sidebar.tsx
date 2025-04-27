@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAuth } from "../contexts/AuthContext"
+import { useAuth } from "../../contexts/AuthContext"
+import { useLogout } from "@/app/contexts/LogoutContext"
 import { useTheme } from "next-themes"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import {
@@ -28,6 +29,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
   const { user, logout } = useAuth()
+  const { openLogoutModal } = useLogout()
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -228,7 +230,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
                 <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
                 <DropdownMenu.Item className="outline-none">
                   <button
-                    onClick={handleLogout}
+                    onClick={openLogoutModal}
                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
                   >
                     <LogOut className="h-4 w-4 mr-2" />

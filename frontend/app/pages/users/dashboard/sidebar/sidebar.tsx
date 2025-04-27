@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "../../../../contexts/AuthContext"
 import { useTheme } from "next-themes"
+import { useLogout } from "@/app/contexts/LogoutContext"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import {
   Home,
@@ -31,6 +32,7 @@ interface SidebarProps {
 
 export function Sidebar({ onCollapsedChange }: SidebarProps) {
   const { user, logout } = useAuth()
+  const { openLogoutModal } = useLogout()
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -236,7 +238,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
                 <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
                 <DropdownMenu.Item className="outline-none">
                   <button
-                    onClick={handleLogout}
+                    onClick={openLogoutModal}
                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
