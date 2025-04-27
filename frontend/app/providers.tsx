@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { AuthProvider } from "./contexts/AuthContext"
+import { useTheme } from "next-themes"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)

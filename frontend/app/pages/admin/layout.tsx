@@ -4,10 +4,10 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../contexts/AuthContext"
+import { useAuth } from "../../contexts/AuthContext"
 import { useTheme } from "next-themes"
-import { AdminSidebar } from "../components/admin-sidebar"
-import { Footer } from "../components/footer"
+import { AdminSidebar } from "../../components/admin-sidebar"
+import { Footer } from "../../components/footer"
 
 export default function AdminLayout({
   children,

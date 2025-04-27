@@ -3,10 +3,10 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../contexts/AuthContext"
+import { useAuth } from "../../../contexts/AuthContext"
 import { useTheme } from "next-themes"
-import { Sidebar } from "../components/sidebar"
-import { Footer } from "../components/footer"
+import { Sidebar } from "./sidebar/sidebar"
+import { Footer } from "../../../components/footer"
 import { Sun, Moon } from "lucide-react"
 
 export default function DashboardLayout({

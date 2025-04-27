@@ -27,7 +27,40 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-}
+  async rewrites(){
+    return [
+      {
+        source:'/register',
+        destination:'/auth/register',
+
+      },
+      {
+        source:'/login',
+        destination:'/auth/login',
+      },
+      {
+        source:'/forgot-password',
+        destination:'/auth/forgot-password',
+      },
+      {
+        source:'/reset-password',
+        destination:'/auth/reset-password',
+      },
+      {
+        source:'/verify-email',
+        destination:'/auth/verify-email',
+      },
+      {
+        source:'/verify-email/:token*',
+        destination:'/auth/verify-email/:token*',
+      },
+      {
+        source:'/verify-email/:token*/:email*',
+        destination:'/auth/verify-email/:token*/:email*',
+      }
+    ];
+  },
+};
 
 if (userConfig) {
   // ESM imports will have a "default" property

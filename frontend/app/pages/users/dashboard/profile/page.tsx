@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/app/contexts/AuthContext"
+import { useAuth } from "@/app/users/contexts/AuthContext"
 import { userService } from "@/app/services/api"
 import { User, Mail, Calendar, Award, CheckCircle } from "lucide-react"
 

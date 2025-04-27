@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAuth } from "@/app/contexts/AuthContext"
+import { useAuth } from "../../../../contexts/AuthContext"
 import { useTheme } from "next-themes"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import {
@@ -181,12 +181,12 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold">
-                    {user?.name?.[0] || "U"}
+                    {user?.email?.[0] || "U"}
                   </div>
                   {!collapsed && (
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user?.name || "User"}
+                        {user?.email || "User"}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                     </div>
