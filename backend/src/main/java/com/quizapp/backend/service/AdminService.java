@@ -8,9 +8,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.quizapp.backend.dto.UserDetailsDTO;
 import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.exception.BadRequestException;
+import com.quizapp.backend.model.QuizAttempt;
 import com.quizapp.backend.model.User;
+import com.quizapp.backend.repository.QuizAttemptRepository;
 import com.quizapp.backend.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminService {
     private final UserRepository userRepository;
     private final UserService userService;
+    private final QuizAttemptRepository quizAttemptRepository;
     
     @Transactional
     public UserResponse getCurrentAdmin() {
@@ -40,6 +44,30 @@ public class AdminService {
         // Map to UserResponse list
         return mapToUserResponseList(admins);
     }
+    @Transactional(readOnly = true)
+    public List<UserDetailsDTO> getAllUsersWithDetails() {
+        return userRepository.findAll().stream()
+                .map(user -> {
+                    int quizzesTaken = quizAttemptRepository.findByUserId(user.getId()).size();
+                    double averageScore = quizAttemptRepository.findByUserId(user.getId()).stream()
+                            .mapToInt(QuizAttempt::getScore)
+                            .average()
+                            .orElse(0.0);
+
+                    return UserDetailsDTO.builder()
+                            .id(user.getId())
+                            .name(user.getFirstName() + " " + user.getLastName())
+                            .email(user.getEmail())
+                            .role(user.getRole().name().toLowerCase())
+                            .status(user.isEnabled() ? "active" : "inactive")
+                            .quizzesTaken(quizzesTaken)
+                            .averageScore(Math.round(averageScore * 100.0) / 100.0) // Round to 2 decimal places
+                            .joinDate(user.getCreatedAt().toLocalDate().toString())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
     
     @Transactional
     public Object getAllUsers() {

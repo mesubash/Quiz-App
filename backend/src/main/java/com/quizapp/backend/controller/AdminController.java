@@ -2,11 +2,14 @@ package com.quizapp.backend.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 
+import com.quizapp.backend.dto.UserDetailsDTO;
 import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.service.UserService;
 import com.quizapp.backend.service.AdminService;
 
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +35,10 @@ public class AdminController {
     public ResponseEntity<Object> getAllAdmins() {
         return ResponseEntity.ok(adminService.getAllAdmins());
     }
-    
+    @GetMapping("/user-details")
+    public ResponseEntity<List<UserDetailsDTO>> getAllUserDetails() {
+        return ResponseEntity.ok(adminService.getAllUsersWithDetails());
+    }
 
     @GetMapping("/get-user/{username}")
     public ResponseEntity<UserResponse> getUser(@PathVariable String username) {
