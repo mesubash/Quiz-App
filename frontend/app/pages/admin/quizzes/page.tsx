@@ -102,14 +102,13 @@ export default function ManageQuizzesPage() {
                 <Filter className="w-5 h-5 text-gray-400" />
               </div>
               <select
-                id="category"
-                className="input pl-10 appearance-none"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
+                className="select"
               >
                 <option value="All">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
+                {categories.map((category, index) => (
+                  <option key={`${category}-${index}`} value={category}>
                     {category}
                   </option>
                 ))}
