@@ -41,6 +41,7 @@ public class UserController {
     public ResponseEntity<List<QuizResultDTO>> getQuizHistory() {
         return ResponseEntity.ok(userService.getQuizHistoryForCurrentUser());
     }
+
     @GetMapping("/quiz-histoy/{quizId}")
     public ResponseEntity<List<QuizResultDTO>> getQuizHistoryByQuizId(@RequestParam Long quizId) {
         return ResponseEntity.ok(userService.getQuizHistoryForCurrentUserByQuizId(quizId));
