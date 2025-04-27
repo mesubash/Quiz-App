@@ -3,42 +3,36 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { quizService } from "@/app/services/api"
-import { Search, Filter, Plus, Edit, Trash2, Eye, Clock, Tag, AlertTriangle } from "lucide-react"
+import { Search, Filter, Plus, Edit, Trash2, Eye, Clock } from "lucide-react"
 
-// Define TypeScript interfaces based on the API response
+// Match backend data structure
 interface QuizOption {
   id: number
   text: string
   isCorrect: boolean
-  questionId: number
 }
 
 interface QuizQuestion {
   id: number
   text: string
-  questionType: string
-  difficulty: string
-  explanation: string
   options: QuizOption[]
-  quizId: number
 }
 
 interface Quiz {
   id: number
   title: string
   description: string
-  timeLimitMinutes: number
+  timeLimitMinutes: number // Backend uses timeLimitMinutes
   isPublished: boolean
-  createdById: number
-  difficulty: string
+  difficulty: string // Backend uses difficulty enum
   questions: QuizQuestion[]
+  createdById?: number
 }
 
 export default function ManageQuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([])
-  const [categories, setCategories] = useState<string[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string>("All")
+  const [difficulties, setDifficulties] = useState<string[]>([])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All")
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [loading, setLoading] = useState(true)
@@ -49,34 +43,32 @@ export default function ManageQuizzesPage() {
       try {
         setLoading(true)
         const data = await quizService.getAllQuizzes()
-        console.log("Fetched quizzes:", data)
+        
+        // Debug the API response
+        console.log("Quiz API response:", data)
+        
+        if (!data || !Array.isArray(data)) {
+          console.error("API did not return an array", data)
+          setError("Failed to load quizzes: Invalid data format")
+          setQuizzes([])
+          setFilteredQuizzes([])
+          return
+        }
         
         setQuizzes(data)
         setFilteredQuizzes(data)
 
-        // Extract unique difficulty levels
-        const difficultiesSet = new Set<string>()
-        data.forEach((quiz: Quiz) => {
-          if (quiz.difficulty) {
-            difficultiesSet.add(capitalizeFirst(quiz.difficulty))
-          }
-        })
-        
-        // Create mock categories since the API doesn't provide them
-        // In a real app, you'd fetch these from the backend
-        const categories = Array.from(new Set([
-          "Programming", 
-          "Java", 
-          "Python", 
-          "Web Development",
-          "Data Science"
-        ]))
-        
-        setCategories(categories)
+        // Extract unique difficulties
+        const uniqueDifficulties = Array.from(
+          new Set(data.map((quiz: Quiz) => quiz.difficulty).filter(Boolean))
+        )
+        setDifficulties(uniqueDifficulties as string[])
         setError(null)
       } catch (error) {
         console.error("Error fetching quizzes:", error)
         setError("Failed to load quizzes. Please try again.")
+        setQuizzes([])
+        setFilteredQuizzes([])
       } finally {
         setLoading(false)
       }
@@ -88,33 +80,25 @@ export default function ManageQuizzesPage() {
   useEffect(() => {
     // Filter quizzes based on difficulty and search term
     const filtered = quizzes.filter((quiz) => {
-      // For difficulty
-      const difficultyMatch = 
-        selectedDifficulty === "All" || 
-        capitalizeFirst(quiz.difficulty) === selectedDifficulty
-      
-      // For search term in title or description
-      const searchMatch = 
-        quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quiz.description.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      return difficultyMatch && searchMatch
+      const matchesDifficulty = selectedDifficulty === "All" || quiz.difficulty === selectedDifficulty
+      const matchesSearch =
+        (quiz.title && quiz.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (quiz.description && quiz.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      return matchesDifficulty && matchesSearch
     })
 
     setFilteredQuizzes(filtered)
   }, [selectedDifficulty, searchTerm, quizzes])
 
-  // Helper function to capitalize first letter
-  const capitalizeFirst = (str: string) => {
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-  }
-
   const handleDeleteQuiz = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) {
+    if (confirm("Are you sure you want to delete this quiz?")) {
       try {
+        // Call API to delete quiz
         await quizService.deleteQuiz(id)
+        
+        // Update local state
         setQuizzes(quizzes.filter((quiz) => quiz.id !== id))
-        alert("Quiz successfully deleted")
+        alert("Quiz deleted successfully")
       } catch (error) {
         console.error("Error deleting quiz:", error)
         alert("Failed to delete quiz. Please try again.")
@@ -122,25 +106,26 @@ export default function ManageQuizzesPage() {
     }
   }
 
+  // Format difficulty string for display
+  const formatDifficulty = (difficulty: string) => {
+    if (!difficulty) return "Unknown"
+    return difficulty.charAt(0) + difficulty.slice(1).toLowerCase()
+  }
+  
   // Get badge color based on difficulty
   const getDifficultyBadgeColor = (difficulty: string) => {
+    if (!difficulty) return "bg-gray-100 text-gray-800"
+    
     switch (difficulty.toLowerCase()) {
       case "easy":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+        return "bg-green-100 text-green-800"
       case "medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+        return "bg-yellow-100 text-yellow-800"
       case "hard":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+        return "bg-red-100 text-red-800"
       default:
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+        return "bg-blue-100 text-blue-800"
     }
-  }
-
-  // Get publication status badge
-  const getPublicationStatusBadge = (isPublished: boolean) => {
-    return isPublished
-      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
   }
 
   if (loading) {
@@ -153,19 +138,15 @@ export default function ManageQuizzesPage() {
       </div>
     )
   }
-
+  
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="text-center max-w-md p-6 bg-red-50 dark:bg-red-900/20 rounded-lg">
-          <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
-            <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-          </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">Error Loading Quizzes</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-          <button
+        <div className="text-center max-w-md">
+          <div className="text-red-500 mb-4 text-lg">{error}</div>
+          <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="px-4 py-2 bg-purple-600 text-white rounded-md"
           >
             Try Again
           </button>
@@ -202,7 +183,7 @@ export default function ManageQuizzesPage() {
             <input
               type="text"
               id="search"
-              className="input pl-10"
+              className="input pl-10 w-full"
               placeholder="Search quizzes by title or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -212,17 +193,20 @@ export default function ManageQuizzesPage() {
           <div className="w-full md:w-64">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Tag className="w-5 h-5 text-gray-400" />
+                <Filter className="w-5 h-5 text-gray-400" />
               </div>
               <select
+                id="difficulty"
+                className="input pl-10 appearance-none w-full"
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="select pl-10"
               >
                 <option value="All">All Difficulties</option>
-                <option value="Easy">Easy</option>
-                <option value="Medium">Medium</option>
-                <option value="Hard">Hard</option>
+                {difficulties.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {formatDifficulty(difficulty)}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -279,29 +263,37 @@ export default function ManageQuizzesPage() {
                   <tr key={quiz.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{quiz.title}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {quiz.title || "Untitled Quiz"}
+                        </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
-                          {quiz.description}
+                          {quiz.description || "No description"}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyBadgeColor(quiz.difficulty)}`}>
-                        {capitalizeFirst(quiz.difficulty)}
+                        {formatDifficulty(quiz.difficulty)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPublicationStatusBadge(quiz.isPublished)}`}>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        quiz.isPublished 
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                      }`}>
                         {quiz.isPublished ? "Published" : "Draft"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {quiz.questions.length} {quiz.questions.length === 1 ? "question" : "questions"}
+                      {quiz.questions && quiz.questions.length > 0 
+                        ? `${quiz.questions.length} ${quiz.questions.length === 1 ? "question" : "questions"}` 
+                        : "0 questions"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                         <Clock className="h-4 w-4 mr-1 text-gray-400" />
-                        {quiz.timeLimitMinutes} min
+                        {quiz.timeLimitMinutes || 0} min
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">

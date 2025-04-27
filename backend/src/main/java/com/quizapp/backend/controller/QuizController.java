@@ -29,12 +29,12 @@ public class QuizController {
         return ResponseEntity.ok(quizService.getAllQuizzes());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{quizId}")
     public ResponseEntity<QuizDTO> getQuizById(@PathVariable Long id) {
         return ResponseEntity.ok(quizService.getQuizById(id));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{quizId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuizDTO> updateQuiz(
             @PathVariable Long id, 
@@ -42,14 +42,14 @@ public class QuizController {
         return ResponseEntity.ok(quizService.updateQuiz(id, quizDTO));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{quizId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteQuiz(@PathVariable Long id) {
         quizService.deleteQuiz(id);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/history/{id}")
+    @GetMapping("/history/{quizId}")
     public ResponseEntity<List<QuizResultDTO>> getQuizHistoryByQuizId(@PathVariable Long quizId) {
         return ResponseEntity.ok(quizService.getQuizHistoryByQuizId(quizId));
     }

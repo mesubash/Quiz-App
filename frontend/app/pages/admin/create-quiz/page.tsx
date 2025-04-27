@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Minus, Save, ArrowLeft } from "lucide-react"
-
+import { Plus, Minus, Save, ArrowLeft, ChevronDown } from "lucide-react"
+import { quizService } from "@/app/services/api" // Add this import
+import axios from "axios" // Add this import
 type Question = {
   id: string
   text: string
@@ -18,6 +18,7 @@ export default function CreateQuizPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [category, setCategory] = useState("")
+  const [difficulty, setDifficulty] = useState("EASY") // Added difficulty state
   const [timeLimit, setTimeLimit] = useState(10)
   const [questions, setQuestions] = useState<Question[]>([
     {
@@ -33,6 +34,20 @@ export default function CreateQuizPage() {
     },
   ])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Get badge color based on difficulty
+  const getDifficultyBadgeColor = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
+      case "easy":
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+      case "medium":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+      case "hard":
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+      default:
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+    }
+  }
 
   const addQuestion = () => {
     const newQuestionId = `q${questions.length + 1}`
@@ -85,6 +100,7 @@ export default function CreateQuizPage() {
     if (!title.trim()) newErrors.title = "Title is required"
     if (!description.trim()) newErrors.description = "Description is required"
     if (!category.trim()) newErrors.category = "Category is required"
+    if (!difficulty) newErrors.difficulty = "Difficulty is required"
     if (timeLimit <= 0) newErrors.timeLimit = "Time limit must be greater than 0"
 
     let hasQuestionErrors = false
@@ -114,26 +130,76 @@ export default function CreateQuizPage() {
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+  
     if (!validateForm()) {
       return
     }
-
-    // In a real app, this would call an API to save the quiz
-    console.log({
-      title,
-      description,
-      category,
-      timeLimit,
-      questions,
-    })
-
-    alert("Quiz created successfully!")
-    router.push("/admin/quizzes")
+  
+    // Show loading state on the button
+    const saveBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="inline-block animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></span> Saving...';
+    }
+  
+    try {
+      // Format the quiz data according to API requirements
+      const quizData = {
+        title,
+        description,
+        category,
+        difficulty,
+        timeLimitMinutes: timeLimit,
+        isPublished: false,
+        questions: questions.map(q => ({
+          text: q.text,
+          options: q.options.map(o => ({
+            text: o.text,
+            isCorrect: o.id === q.correctOptionId
+          }))
+        }))
+      }
+      
+      console.log("Submitting quiz data:", quizData);
+      
+      // Call the API service to create the quiz
+      const response = await quizService.createQuiz(quizData);
+      console.log("Quiz created successfully:", response);
+      
+      // Show success message
+      alert("Quiz created successfully!");
+      
+      // Navigate back to quizzes list
+      router.push("/admin/quizzes");
+      
+    } catch (error) {
+      console.error("Error creating quiz:", error);
+      
+      // Handle different types of errors
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          alert("Your session has expired. Please log in again.");
+          router.push("/login");
+          return;
+        }
+        
+        alert(`Failed to save quiz: ${error.response?.data?.message || error.message}`);
+      } else {
+        alert("Failed to save quiz. Please try again.");
+      }
+      
+      // Restore the button state
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<svg class="h-5 w-5 mr-2" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Save Quiz';
+      }
+    }
   }
+  
+
+
 
   return (
     <div className="space-y-6">
@@ -218,6 +284,42 @@ export default function CreateQuizPage() {
                   className={`mt-1 input ${errors.timeLimit ? "border-red-500 dark:border-red-500" : ""}`}
                 />
                 {errors.timeLimit && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.timeLimit}</p>}
+              </div>
+            </div>
+
+            {/* Add Difficulty Selector */}
+            <div>
+              <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Difficulty
+              </label>
+              <div className="mt-1 relative">
+                <select
+                  id="difficulty"
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className={`input w-full appearance-none pr-10 ${
+                    errors.difficulty ? "border-red-500 dark:border-red-500" : ""
+                  }`}
+                >
+                  <option value="EASY">Easy</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HARD">Hard</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                  <ChevronDown className="h-5 w-5" />
+                </div>
+              </div>
+              {errors.difficulty && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.difficulty}</p>}
+              
+              {/* Show badge for selected difficulty */}
+              <div className="mt-2">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getDifficultyBadgeColor(
+                    difficulty
+                  )}`}
+                >
+                  {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}
+                </span>
               </div>
             </div>
           </div>
@@ -331,4 +433,3 @@ export default function CreateQuizPage() {
     </div>
   )
 }
-

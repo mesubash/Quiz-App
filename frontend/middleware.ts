@@ -9,6 +9,7 @@ export function middleware(request: NextRequest) {
   const cookies = request.cookies;
   const role = cookies.get("role")?.value;
   const token = cookies.get("accessToken")?.value;
+  
 
   console.log(`User role: ${role}, Has token: ${token ? "Yes" : "No"}`);
 

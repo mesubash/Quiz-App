@@ -81,10 +81,43 @@ export const authService = {
     return response.data;
   },
 
-  // Update the logout function in authService
+  refreshToken: async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem("refreshToken");
+      if (!storedRefreshToken) {
+        throw new Error("No refresh token found. Please log in again.");
+      }
+  
+      // Call the backend to refresh the token
+      const response = await api.post("/auth/refresh", { refreshToken: storedRefreshToken });
+  
+      // Update the access token in localStorage and cookies
+      const { accessToken, refreshToken } = response.data;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+  
+      // Optionally, set cookies for server-side middleware
+      document.cookie = `accessToken=${accessToken};path=/;SameSite=Strict;secure`;
+      document.cookie = `refreshToken=${refreshToken};path=/;SameSite=Strict;secure`;
+  
+      return accessToken;
+    } catch (error) {
+      console.error("Token refresh error:", error);
+  
+      // Clear invalid tokens and redirect to login
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      document.cookie = "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/login";
+  
+      throw error;
+    }
+  },
 
-  // Update the logout function in authService
 
+ 
   logout: async () => {
     try {
       // 1. Call the backend to invalidate the token
@@ -195,10 +228,37 @@ export const userService = {
 // Quiz Services
 export const quizService = {
   getAllQuizzes: async () => {
-    const response = await api.get("/quizzes");
-    return response.data;
+    try {
+      const response = await api.get("/quizzes");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+      throw error;
+    }
   },
 
+  // Get a single quiz by ID
+  getQuizById: async (id: number) => {
+    try {
+      const response = await api.get(`/quizzes/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching quiz ${id}:`, error);
+      throw error;
+    }
+  },
+  // Create a new quiz
+  createQuiz: async (quizData: any) => {
+    try {
+      console.log("API: Creating quiz with data:", quizData);
+      // Use a specific endpoint for quiz creation
+      const response = await api.post("/quizzes", quizData);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating quiz:", error);
+      throw error;
+    }
+  },
   getQuizQuestions: async (quizId: string) => {
     const response = await api.get(`/quizzes/${quizId}/questions`);
     return response.data;
@@ -212,9 +272,14 @@ export const quizService = {
     const response = await api.post(`/attempts/start?quizId=${quizId}`);
     return response.data;
   },
-  deleteQuiz: async (quizId: number) => {
-    const response = await api.delete(`/quizzes/${quizId}`);
-    return response.data;
+  updateQuiz: async (id: number, quizData: any) => {
+    try {
+      const response = await api.put(`/quizzes/${id}`, quizData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating quiz ${id}:`, error);
+      throw error;
+    }
   },
 
   submitQuizAttempt: async (attemptId: string, answers: any[]) => {
@@ -222,6 +287,15 @@ export const quizService = {
       answers,
     });
     return response.data;
+  },
+  deleteQuiz: async (id: number) => {
+    try {
+      const response = await api.delete(`/quizzes/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting quiz ${id}:`, error);
+      throw error;
+    }
   },
 };
 
