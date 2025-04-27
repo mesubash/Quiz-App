@@ -212,6 +212,10 @@ export const quizService = {
     const response = await api.post(`/attempts/start?quizId=${quizId}`);
     return response.data;
   },
+  deleteQuiz: async (quizId: number) => {
+    const response = await api.delete(`/quizzes/${quizId}`);
+    return response.data;
+  },
 
   submitQuizAttempt: async (attemptId: string, answers: any[]) => {
     const response = await api.post(`/attempts/${attemptId}/submit`, {
