@@ -132,6 +132,40 @@ export const authService = {
   },
 };
 
+export const adminService = {
+  getAllUsers: async () => {
+    try {
+      const response = await api.get("/admin/get-all-users");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      throw error;
+    }
+  },
+
+  deleteUser: async (username: string) => {
+    try {
+      const response = await api.delete(`/admin/delete-user/${username}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting user ${username}:`, error);
+      throw error;
+    }
+  },
+
+  toggleUserStatus: async (userId: string, status: boolean) => {
+    try {
+      const response = await api.patch(`/admin/update-user-status/${userId}`, {
+        enabled: status,
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating user status:`, error);
+      throw error;
+    }
+  },
+};
+
 // User Services
 export const userService = {
   getUserProfile: async () => {

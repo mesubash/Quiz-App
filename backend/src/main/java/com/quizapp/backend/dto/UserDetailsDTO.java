@@ -8,9 +8,10 @@ import lombok.Data;
 public class UserDetailsDTO {
     private Long id;
     private String name;
+    private String username;
     private String email;
     private String role;
-    private String status;
+    private boolean enabled;
     private Integer quizzesTaken;
     private Double averageScore;
     private String joinDate;

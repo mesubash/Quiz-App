@@ -11,6 +11,7 @@ import java.util.Optional;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import com.quizapp.backend.model.enums.Role;
 
 @Entity
 @Table(name = "users")
@@ -35,9 +36,11 @@ public class User implements UserDetails {
     private String firstName;
     private String lastName;
 
+
+
     @Enumerated(EnumType.STRING)
     private Role role;
-
+    @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
     @CreationTimestamp
@@ -46,36 +49,7 @@ public class User implements UserDetails {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> "ROLE_" + role.name());
-    }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
-    public enum Role {
-        ADMIN, USER
-    }
-    public Optional<User> getQuizHistory() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getQuizHistory'");
-    }
 }
 

@@ -138,16 +138,27 @@ public class UserService {
 
 
 
-    UserResponse mapToUserResponse(User user) {
-        return UserResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .role(user.getRole().name())
-            .build();
-    }
+        public UserResponse mapToUserResponse(User user) {
+                // Calculate quizzes taken and average score
+                int quizzesTaken = quizAttemptRepository.findByUserId(user.getId()).size();
+                double averageScore = quizAttemptRepository.findByUserId(user.getId()).stream()
+                        .mapToInt(QuizAttempt::getScore)
+                        .average()
+                        .orElse(0.0);
+                        
+                return UserResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .email(user.getEmail())
+                        .firstName(user.getFirstName())
+                        .lastName(user.getLastName())
+                        .role(user.getRole().name())
+                        .enabled(user.isEnabled())
+                        .joinDate(user.getCreatedAt().toLocalDate().toString())
+                        .quizzesTaken(quizzesTaken)  // Set the quizzesTaken field
+                        .averageScore(Math.round(averageScore * 100.0) / 100.0)  // Round to 2 decimal places
+                        .build();
+        }
 
 
 

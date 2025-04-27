@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { Search, UserPlus, Edit, Trash2, Check, X } from "lucide-react"
+import { adminService } from "@/app/services/api"
+import { useRouter } from "next/navigation"
 
+// Update the User type to match your backend response
 type User = {
-  id: string
-  name: string
+  id: number
+  username: string
   email: string
-  role: "admin" | "user"
-  status: "active" | "inactive"
-  quizzesTaken: number
-  averageScore: number
-  joinDate: string
+  name?: string
+  role: string
+  enabled: boolean
+  quizzesTaken?: number  // These might need to be calculated or fetched separately
+  averageScore?: number  // These might need to be calculated or fetched separately
+  joinDate?: string     // This would be the join date
 }
 
 export default function UsersPage() {
@@ -19,69 +23,24 @@ export default function UsersPage() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    // Simulate API call
     const fetchUsers = async () => {
       try {
-        // Mock data
-        const mockUsers: User[] = [
-          {
-            id: "1",
-            name: "John Doe",
-            email: "john@example.com",
-            role: "user",
-            status: "active",
-            quizzesTaken: 12,
-            averageScore: 85,
-            joinDate: "2023-01-15",
-          },
-          {
-            id: "2",
-            name: "Jane Smith",
-            email: "jane@example.com",
-            role: "admin",
-            status: "active",
-            quizzesTaken: 5,
-            averageScore: 92,
-            joinDate: "2023-02-20",
-          },
-          {
-            id: "3",
-            name: "Bob Johnson",
-            email: "bob@example.com",
-            role: "user",
-            status: "inactive",
-            quizzesTaken: 8,
-            averageScore: 78,
-            joinDate: "2023-03-10",
-          },
-          {
-            id: "4",
-            name: "Alice Williams",
-            email: "alice@example.com",
-            role: "user",
-            status: "active",
-            quizzesTaken: 15,
-            averageScore: 88,
-            joinDate: "2023-04-05",
-          },
-          {
-            id: "5",
-            name: "Charlie Brown",
-            email: "charlie@example.com",
-            role: "user",
-            status: "active",
-            quizzesTaken: 7,
-            averageScore: 75,
-            joinDate: "2023-05-12",
-          },
-        ]
-
-        setUsers(mockUsers)
-        setFilteredUsers(mockUsers)
+        setLoading(true)
+        console.log("Fetching users from API...")
+        const userData = await adminService.getAllUsers()
+        console.log("Received user data:", userData)
+        
+        // No processing needed since data structure matches
+        setUsers(userData)
+        setFilteredUsers(userData)
+        setError(null)
       } catch (error) {
         console.error("Error fetching users:", error)
+        setError("Failed to load users. Please try again later.")
       } finally {
         setLoading(false)
       }
@@ -94,25 +53,43 @@ export default function UsersPage() {
     // Filter users based on search term
     const filtered = users.filter(
       (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     setFilteredUsers(filtered)
   }, [searchTerm, users])
 
-  const handleDeleteUser = (id: string) => {
-    // In a real app, this would call an API
-    setUsers(users.filter((user) => user.id !== id))
-    alert(`User with ID ${id} would be deleted in a real app`)
+  const handleDeleteUser = async (id: number, username: string) => {
+    if (window.confirm(`Are you sure you want to delete ${username}?`)) {
+      try {
+        await adminService.deleteUser(username)
+        setUsers(users.filter((user) => user.id !== id))
+        alert(`User ${username} deleted successfully`)
+      } catch (error) {
+        console.error(`Error deleting user ${username}:`, error)
+        alert(`Failed to delete ${username}. Please try again.`)
+      }
+    }
   }
 
-  const toggleUserStatus = (id: string) => {
-    // In a real app, this would call an API
-    setUsers(
-      users.map((user) =>
-        user.id === id ? { ...user, status: user.status === "active" ? "inactive" : "active" } : user,
-      ),
-    )
+  const toggleUserStatus = async (id: number) => {
+    try {
+      const user = users.find(u => u.id === id)
+      if (!user) return
+      
+      const newStatus = !user.enabled
+      await adminService.toggleUserStatus(id.toString(), newStatus)
+      
+      setUsers(
+        users.map((u) =>
+          u.id === id ? { ...u, enabled: newStatus } : u
+        )
+      )
+    } catch (error) {
+      console.error("Error toggling user status:", error)
+      alert("Failed to update user status. Please try again.")
+    }
   }
 
   if (loading) {
@@ -121,6 +98,22 @@ export default function UsersPage() {
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-purple-600 border-r-transparent"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="text-center max-w-md p-6 bg-red-50 dark:bg-red-900/20 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <button 
+            onClick={() => router.refresh()}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     )
@@ -212,35 +205,38 @@ export default function UsersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-700 dark:text-purple-200 font-semibold text-lg">
-                          {user.name.charAt(0).toUpperCase()}
+                          {user.username[0].toUpperCase()}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {user.name !== "null null" ? user.name : user.username}
+                          </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
                         </div>
                       </div>
                     </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          user.role === "admin"
+                          user.role.toLowerCase() === "admin"
                             ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200"
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
                         }`}
                       >
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => toggleUserStatus(user.id)}
                         className={`px-2 py-1 text-xs font-medium rounded-full flex items-center ${
-                          user.status === "active"
+                          user.enabled
                             ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
                             : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
                         }`}
                       >
-                        {user.status === "active" ? (
+                        {user.enabled ? (
                           <>
                             <Check className="h-3 w-3 mr-1" />
                             Active
@@ -254,14 +250,17 @@ export default function UsersPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {user.quizzesTaken}
+                      {user.quizzesTaken || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {user.averageScore}%
+                      {user.averageScore || 0}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(user.joinDate).toLocaleDateString()}
+                        {user.joinDate 
+                          ? new Date(user.joinDate).toLocaleDateString() 
+                          : "N/A"}
                     </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       <div className="flex justify-center space-x-3">
                         <button
@@ -271,7 +270,7 @@ export default function UsersPage() {
                           <Edit className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleDeleteUser(user.id, user.username)}
                           className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                           title="Delete"
                         >
@@ -295,4 +294,3 @@ export default function UsersPage() {
     </div>
   )
 }
-

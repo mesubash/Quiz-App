@@ -13,6 +13,7 @@ import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.exception.BadRequestException;
 import com.quizapp.backend.model.QuizAttempt;
 import com.quizapp.backend.model.User;
+import com.quizapp.backend.model.enums.Role;
 import com.quizapp.backend.repository.QuizAttemptRepository;
 import com.quizapp.backend.repository.UserRepository;
 
@@ -35,6 +36,16 @@ public class AdminService {
 
         return userService.mapToUserResponse(admin);
     }
+    @Transactional
+    public UserResponse updateUserStatus(String username, boolean enabled) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BadRequestException("User not found"));
+        
+        user.setEnabled(enabled);
+        User savedUser = userRepository.save(user);
+        
+        return mapToUserResponse(savedUser);
+    }
 
     @Transactional
     public Object getAllAdmins() {
@@ -53,13 +64,14 @@ public class AdminService {
                             .mapToInt(QuizAttempt::getScore)
                             .average()
                             .orElse(0.0);
-
+    
                     return UserDetailsDTO.builder()
                             .id(user.getId())
                             .name(user.getFirstName() + " " + user.getLastName())
+                            .username(user.getUsername())
                             .email(user.getEmail())
                             .role(user.getRole().name().toLowerCase())
-                            .status(user.isEnabled() ? "active" : "inactive")
+                            .enabled(user.isEnabled()) // Map the enabled field directly
                             .quizzesTaken(quizzesTaken)
                             .averageScore(Math.round(averageScore * 100.0) / 100.0) // Round to 2 decimal places
                             .joinDate(user.getCreatedAt().toLocalDate().toString())
@@ -72,7 +84,7 @@ public class AdminService {
     @Transactional
     public Object getAllUsers() {
         // Get all users from the repository
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllByRole(Role.USER);
 
         // Map to UserResponse list
         return mapToUserResponseList(users);
@@ -106,13 +118,24 @@ public class AdminService {
     }
 
     UserResponse mapToUserResponse(User user) {
+        // Calculate quiz statistics
+        int quizzesTaken = quizAttemptRepository.findByUserId(user.getId()).size();
+        double averageScore = quizAttemptRepository.findByUserId(user.getId()).stream()
+                .mapToInt(QuizAttempt::getScore)
+                .average()
+                .orElse(0.0);
+                
         return UserResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .role(user.getRole().name())
-            .build();
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole().name())
+                .enabled(user.isEnabled())
+                .joinDate(user.getCreatedAt().toLocalDate().toString())
+                .quizTaken(quizzesTaken) // Make sure field name matches exactly
+                .averageScore(Math.round(averageScore * 100.0) / 100.0) // Round to 2 decimal places
+                .build();
     }
 }
