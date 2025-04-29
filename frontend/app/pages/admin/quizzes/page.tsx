@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { quizService } from "@/app/services/api"
-import { Search, Filter, Plus, Edit, Trash2, Eye, Clock } from "lucide-react"
+import { Search, Filter, Plus, Edit, Trash2, Eye, Clock, X } from "lucide-react"
 
 // Match backend data structure
 interface QuizOption {
@@ -22,11 +22,22 @@ interface Quiz {
   id: number
   title: string
   description: string
-  timeLimitMinutes: number // Backend uses timeLimitMinutes
+  timeLimitMinutes: number
   isPublished: boolean
-  difficulty: string // Backend uses difficulty enum
+  difficulty: string
   questions: QuizQuestion[]
   createdById?: number
+}
+
+type Toast = {
+  id: string
+  message: string
+  type: "success" | "error"
+}
+
+type ConfirmDialog = {
+  isOpen: boolean
+  quizId: number | null
 }
 
 export default function ManageQuizzesPage() {
@@ -37,16 +48,17 @@ export default function ManageQuizzesPage() {
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ isOpen: false, quizId: null })
 
+  // Fetch quizzes on mount
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
         setLoading(true)
         const data = await quizService.getAllQuizzes()
-        
-        // Debug the API response
         console.log("Quiz API response:", data)
-        
+
         if (!data || !Array.isArray(data)) {
           console.error("API did not return an array", data)
           setError("Failed to load quizzes: Invalid data format")
@@ -54,11 +66,10 @@ export default function ManageQuizzesPage() {
           setFilteredQuizzes([])
           return
         }
-        
+
         setQuizzes(data)
         setFilteredQuizzes(data)
 
-        // Extract unique difficulties
         const uniqueDifficulties = Array.from(
           new Set(data.map((quiz: Quiz) => quiz.difficulty).filter(Boolean))
         )
@@ -77,8 +88,8 @@ export default function ManageQuizzesPage() {
     fetchQuizzes()
   }, [])
 
+  // Filter quizzes based on difficulty and search term
   useEffect(() => {
-    // Filter quizzes based on difficulty and search term
     const filtered = quizzes.filter((quiz) => {
       const matchesDifficulty = selectedDifficulty === "All" || quiz.difficulty === selectedDifficulty
       const matchesSearch =
@@ -90,20 +101,44 @@ export default function ManageQuizzesPage() {
     setFilteredQuizzes(filtered)
   }, [selectedDifficulty, searchTerm, quizzes])
 
-  const handleDeleteQuiz = async (id: number) => {
-    if (confirm("Are you sure you want to delete this quiz?")) {
-      try {
-        // Call API to delete quiz
-        await quizService.deleteQuiz(id)
-        
-        // Update local state
-        setQuizzes(quizzes.filter((quiz) => quiz.id !== id))
-        alert("Quiz deleted successfully")
-      } catch (error) {
-        console.error("Error deleting quiz:", error)
-        alert("Failed to delete quiz. Please try again.")
-      }
+  // Auto-remove toasts after 5 seconds
+  useEffect(() => {
+    if (toasts.length > 0) {
+      const timer = setTimeout(() => {
+        setToasts((prev) => prev.slice(1))
+      }, 5000)
+      return () => clearTimeout(timer)
     }
+  }, [toasts])
+
+  // Add a toast notification
+  const addToast = (message: string, type: "success" | "error") => {
+    const id = Math.random().toString(36).substr(2, 9)
+    setToasts((prev) => [...prev, { id, message, type }])
+  }
+
+  // Handle delete quiz with confirmation dialog
+  const handleDeleteQuiz = (id: number) => {
+    setConfirmDialog({ isOpen: true, quizId: id })
+  }
+
+  const confirmDelete = async () => {
+    if (!confirmDialog.quizId) return
+
+    try {
+      await quizService.deleteQuiz(confirmDialog.quizId)
+      setQuizzes(quizzes.filter((quiz) => quiz.id !== confirmDialog.quizId))
+      addToast("Quiz deleted successfully", "success")
+    } catch (error) {
+      console.error("Error deleting quiz:", error)
+      addToast("Failed to delete quiz. Please try again.", "error")
+    } finally {
+      setConfirmDialog({ isOpen: false, quizId: null })
+    }
+  }
+
+  const cancelDelete = () => {
+    setConfirmDialog({ isOpen: false, quizId: null })
   }
 
   // Format difficulty string for display
@@ -111,11 +146,11 @@ export default function ManageQuizzesPage() {
     if (!difficulty) return "Unknown"
     return difficulty.charAt(0) + difficulty.slice(1).toLowerCase()
   }
-  
+
   // Get badge color based on difficulty
   const getDifficultyBadgeColor = (difficulty: string) => {
     if (!difficulty) return "bg-gray-100 text-gray-800"
-    
+
     switch (difficulty.toLowerCase()) {
       case "easy":
         return "bg-green-100 text-green-800"
@@ -138,13 +173,13 @@ export default function ManageQuizzesPage() {
       </div>
     )
   }
-  
+
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
         <div className="text-center max-w-md">
           <div className="text-red-500 mb-4 text-lg">{error}</div>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-purple-600 text-white rounded-md"
           >
@@ -157,6 +192,62 @@ export default function ManageQuizzesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`flex items-center p-4 rounded-lg shadow-lg transform transition-all duration-300 animate-slide-in ${
+              toast.type === "success"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+            }`}
+          >
+            <span>{toast.message}</span>
+            <button
+              onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+              className="ml-4 text-white hover:text-gray-200"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-md w-full transform transition-all duration-300 animate-slide-down border border-red-500/50">
+            <div className="flex items-center mb-4">
+              <svg className="h-6 w-6 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">
+                Confirm Deletion
+              </h3>
+            </div>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Are you sure you want to delete this quiz? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-all duration-200"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Manage Quizzes</h1>
@@ -165,7 +256,7 @@ export default function ManageQuizzesPage() {
           </p>
         </div>
         <Link
-          href="/admin/create-quiz"
+          href="/admin/quizzes/create-quiz"
           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center"
         >
           <Plus className="h-5 w-5 mr-2" />
@@ -306,10 +397,11 @@ export default function ManageQuizzesPage() {
                           <Eye className="h-5 w-5" />
                         </Link>
                         <Link
-                          href={`/admin/quizzes/edit/${quiz.id}`}
+                          href={`/admin/quizzes/edit-quiz/${quiz.id}`}
                           className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
                           title="Edit"
                         >
+
                           <Edit className="h-5 w-5" />
                         </Link>
                         <button
@@ -334,6 +426,35 @@ export default function ManageQuizzesPage() {
           </table>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out forwards;
+        }
+        @keyframes slide-down {
+          from {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-down {
+          animation: slide-down 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   )
 }

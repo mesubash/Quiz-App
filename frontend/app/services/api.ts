@@ -55,21 +55,19 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Request interceptor
+// Add request interceptor to add auth header
 api.interceptors.request.use(
   (config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    const token = localStorage.getItem("accessToken");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Update the refresh token endpoint path
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -79,36 +77,27 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return api(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
+        try {
+          const token = await new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          });
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return api(originalRequest);
+        } catch (err) {
+          return Promise.reject(err);
+        }
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) throw new Error("No refresh token found");
-
-        const response = await api.post<{ accessToken: string }>(
-          "/auth/refresh",
-          { refreshToken }
-        );
-        const { accessToken } = response.data;
-
-        localStorage.setItem("accessToken", accessToken);
-        processQueue(null, accessToken);
-
+        const newAccessToken = await authService.refreshToken();
+        processQueue(null, newAccessToken);
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         }
         return api(originalRequest);
       } catch (refreshError) {
@@ -127,17 +116,32 @@ api.interceptors.response.use(
 // Auth Service
 export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>("/auth/login", {
-      email,
-      password,
-    });
-    const { accessToken, refreshToken, user } = response.data;
+    try {
+      const response = await api.post<AuthResponse>("/auth/signin", {
+        // Changed from /auth/login
+        email,
+        password,
+      });
 
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("user", JSON.stringify(user));
+      const { accessToken, refreshToken, user } = response.data;
 
-    return response.data;
+      // Store tokens and user data
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          throw new Error("Invalid email or password");
+        }
+        if (error.response?.status === 401) {
+          throw new Error("Unauthorized access");
+        }
+      }
+      throw error;
+    }
   },
 
   register: async (
@@ -178,39 +182,33 @@ export const authService = {
     try {
       const storedRefreshToken = localStorage.getItem("refreshToken");
       if (!storedRefreshToken) {
-        throw new Error("No refresh token found. Please log in again.");
+        throw new Error("No refresh token found");
       }
 
-      // Call the backend to refresh the token
       const response = await api.post("/auth/refresh", {
-        refreshToken: storedRefreshToken,
+        // Changed from /auth/token/refresh
+        token: storedRefreshToken, // Changed from refreshToken to token
       });
 
-      // Update the access token in localStorage and cookies
       const { accessToken, refreshToken } = response.data;
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
 
-      // Optionally, set cookies for server-side middleware
-      document.cookie = `accessToken=${accessToken};path=/;SameSite=Strict;secure`;
-      document.cookie = `refreshToken=${refreshToken};path=/;SameSite=Strict;secure`;
+      // Update stored tokens
+      localStorage.setItem("accessToken", accessToken);
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
 
       return accessToken;
     } catch (error) {
-      console.error("Token refresh error:", error);
-
-      // Clear invalid tokens and redirect to login
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      document.cookie =
-        "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      document.cookie =
-        "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          await authService.logout(true);
+          throw new Error("Session expired. Please login again.");
+        }
+        if (error.response?.status === 500) {
+          throw new Error("Server error. Please try again later.");
+        }
       }
-
       throw error;
     }
   },
@@ -254,9 +252,21 @@ export const quizService = {
     return response.data;
   },
 
-  getQuizById: async (id: string) => {
-    const response = await api.get(`/quizzes/${id}`);
-    return response.data;
+  getQuizById: async (id: number) => {
+    try {
+      const response = await api.get(`/quizzes/${id}`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new Error("Quiz not found");
+        }
+        if (error.response?.status === 401) {
+          throw new Error("Unauthorized access");
+        }
+      }
+      throw error;
+    }
   },
 
   createQuiz: async (quizData: QuizData) => {
@@ -264,9 +274,21 @@ export const quizService = {
     return response.data;
   },
 
-  updateQuiz: async (id: string, quizData: Partial<QuizData>) => {
-    const response = await api.put(`/quizzes/${id}`, quizData);
-    return response.data;
+  updateQuiz: async (id: number, quizData: QuizData) => {
+    try {
+      const response = await api.put(`/quizzes/${id}`, quizData);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new Error("Quiz not found");
+        }
+        if (error.response?.status === 401) {
+          throw new Error("Unauthorized access");
+        }
+      }
+      throw error;
+    }
   },
 
   deleteQuiz: async (id: number) => {

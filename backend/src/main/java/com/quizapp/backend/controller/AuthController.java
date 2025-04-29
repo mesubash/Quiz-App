@@ -35,7 +35,7 @@ public class AuthController {
         Cookie refreshTokenCookie = new Cookie("refreshToken", authResponse.getRefreshToken());
         refreshTokenCookie.setHttpOnly(true);
         refreshTokenCookie.setSecure(true); // Use HTTPS in production
-        refreshTokenCookie.setPath("/api/auth/refresh");
+        refreshTokenCookie.setPath("/api/auth/token/refresh");
         refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
         response.addCookie(refreshTokenCookie);
 
@@ -53,7 +53,7 @@ public class AuthController {
         return ResponseEntity.ok("User logged out successfully.");
     }
     
-    @PostMapping("/refresh-token")
+    @PostMapping("/token/refresh")
     public ResponseEntity<AuthResponse> refreshAccessToken(HttpServletRequest request) {
         String refreshToken = null;
         if (request.getCookies() != null) {
