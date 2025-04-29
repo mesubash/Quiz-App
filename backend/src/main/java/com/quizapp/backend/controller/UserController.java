@@ -47,6 +47,8 @@ public class UserController {
         return ResponseEntity.ok(userService.getQuizHistoryForCurrentUserByQuizId(quizId));
     }
 
+    
+
 
 
     

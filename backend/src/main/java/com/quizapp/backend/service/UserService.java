@@ -29,12 +29,18 @@ public class UserService {
 
     @Transactional
     public UserResponse getCurrentUser() {
-        // Get the currently authenticated user
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new BadRequestException("User not found"));
-
-        return mapToUserResponse(user);
+        try {
+            // Get the currently authenticated user
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+    
+            return mapToUserResponse(user);
+        } catch (Exception e) {
+            // Log the error for debugging
+            System.err.println("Error fetching current user: " + e.getMessage());
+            return null; // Return null in case of an exception
+        }
     }
 
     
@@ -138,27 +144,27 @@ public class UserService {
 
 
 
-        public UserResponse mapToUserResponse(User user) {
-                // Calculate quizzes taken and average score
-                int quizzesTaken = quizAttemptRepository.findByUserId(user.getId()).size();
-                double averageScore = quizAttemptRepository.findByUserId(user.getId()).stream()
-                        .mapToInt(QuizAttempt::getScore)
-                        .average()
-                        .orElse(0.0);
-                        
-                return UserResponse.builder()
-                        .id(user.getId())
-                        .username(user.getUsername())
-                        .email(user.getEmail())
-                        .firstName(user.getFirstName())
-                        .lastName(user.getLastName())
-                        .role(user.getRole().name())
-                        .enabled(user.isEnabled())
-                        .joinDate(user.getCreatedAt().toLocalDate().toString())
-                        .quizzesTaken(quizzesTaken)  // Set the quizzesTaken field
-                        .averageScore(Math.round(averageScore * 100.0) / 100.0)  // Round to 2 decimal places
-                        .build();
-        }
+    public UserResponse mapToUserResponse(User user) {
+        // Calculate quizzes taken and average score
+        int quizzesTaken = quizAttemptRepository.findByUserId(user.getId()).size();
+        double averageScore = quizAttemptRepository.findByUserId(user.getId()).stream()
+                .mapToInt(QuizAttempt::getScore)
+                .average()
+                .orElse(0.0);
+    
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName() != null ? user.getFirstName() : "N/A")
+                .lastName(user.getLastName() != null ? user.getLastName() : "N/A")
+                .role(user.getRole().name())
+                .enabled(user.isEnabled())
+                .joinDate(user.getCreatedAt() != null ? user.getCreatedAt().toLocalDate().toString() : "N/A")
+                .quizzesTaken(quizzesTaken) // Set quizzesTaken
+                .averageScore(Math.round(averageScore * 100.0) / 100.0) // Set averageScore
+                .build();
+    }
 
 
 

@@ -17,7 +17,7 @@ public class QuizController {
 
     private final QuizService quizService;
 
-    @PostMapping("create")
+    @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuizDTO> createQuiz(@RequestBody QuizDTO quizDTO) {
         

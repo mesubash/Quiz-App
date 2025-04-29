@@ -172,6 +172,9 @@ public class QuizService {
     }
 
     private QuestionDTO mapToQuestionDTO(Question question) {
+        if (question.getQuestionType() == null) {
+            throw new IllegalArgumentException("Question type cannot be null");
+        }
         return QuestionDTO.builder()
                 .id(question.getId())
                 .text(question.getText())

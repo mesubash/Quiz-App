@@ -134,7 +134,7 @@ public class AdminService {
                 .role(user.getRole().name())
                 .enabled(user.isEnabled())
                 .joinDate(user.getCreatedAt().toLocalDate().toString())
-                .quizTaken(quizzesTaken) // Make sure field name matches exactly
+                .quizzesTaken(quizzesTaken) // Make sure field name matches exactly
                 .averageScore(Math.round(averageScore * 100.0) / 100.0) // Round to 2 decimal places
                 .build();
     }
