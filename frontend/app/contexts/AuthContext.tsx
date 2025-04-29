@@ -4,10 +4,16 @@ import { authService } from "../services/api";
 
 // Define the User type
 type User = {
-  id: string;
-  name: string;
+  id: number;
+  username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: string;
+  enabled: boolean;
+  joinDate?: string;
+  quizzesTaken?: number;
+  averageScore?: number;
 };
 
 // Utility functions for cookies
@@ -111,21 +117,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [authInitialized, initAuth]);
 
-  // Login function
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     setLoading(true);
     try {
       const response = await authService.login(email, password);
+      
+      // Store tokens
       localStorage.setItem("accessToken", response.accessToken);
       localStorage.setItem("refreshToken", response.refreshToken);
       localStorage.setItem("user", JSON.stringify(response.user));
+      
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
       }
+      
+      // Set cookies
       setCookie("accessToken", response.accessToken);
       setCookie("role", response.user.role);
-      setUser(response.user);
-      router.push(response.user.role === "admin" ? "/admin" : "/dashboard");
+      
+      // Update user state with type checking
+      if (response.user) {
+        setUser(response.user);
+        // Navigate based on role
+        router.push(response.user.role.toLowerCase() === "admin" ? "/admin" : "/dashboard");
+      }
     } catch (error) {
       console.error("Login failed:", error);
       clearAuthState();
