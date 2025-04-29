@@ -117,7 +117,7 @@ api.interceptors.response.use(
 export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/signin", {
+      const response = await api.post<AuthResponse>("/auth/login", {
         // Changed from /auth/login
         email,
         password,
@@ -161,53 +161,79 @@ export const authService = {
     try {
       const token = localStorage.getItem("accessToken");
       if (token) {
-        await api.post("/auth/logout");
+        await api.post(
+          "/auth/logout",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
       }
     } catch (error) {
       if (!silent) {
         console.error("Error during logout:", error);
+        throw error;
       }
     } finally {
+      // Clear localStorage
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");
-      document.cookie =
-        "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      document.cookie =
-        "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      window.location.href = "/login";
+
+      // Clear all cookies
+      const cookies = document.cookie.split(";");
+      for (const cookie of cookies) {
+        const [name] = cookie.split("=");
+        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      }
     }
   },
+
   refreshToken: async () => {
     try {
       const storedRefreshToken = localStorage.getItem("refreshToken");
       if (!storedRefreshToken) {
-        throw new Error("No refresh token found");
+        // Instead of throwing, try to get refresh token from cookie
+        const cookies = document.cookie.split(";");
+        const refreshTokenCookie = cookies.find((c) =>
+          c.trim().startsWith("refreshToken=")
+        );
+        if (!refreshTokenCookie) {
+          // If no token in localStorage or cookies, handle gracefully
+          await authService.logout(true);
+          throw new Error("Session expired. Please login again.");
+        }
+        // Extract token from cookie
+        const token = refreshTokenCookie.split("=")[1];
+        localStorage.setItem("refreshToken", token);
       }
 
-      const response = await api.post("/auth/refresh", {
-        // Changed from /auth/token/refresh
-        token: storedRefreshToken, // Changed from refreshToken to token
+      const response = await api.post("/auth/token/refresh", {
+        token: storedRefreshToken || localStorage.getItem("refreshToken"),
       });
 
       const { accessToken, refreshToken } = response.data;
 
-      // Update stored tokens
+      // Update both localStorage and cookies
       localStorage.setItem("accessToken", accessToken);
       if (refreshToken) {
         localStorage.setItem("refreshToken", refreshToken);
+        document.cookie = `refreshToken=${refreshToken}; path=/; secure; samesite=strict`;
       }
 
       return accessToken;
     } catch (error) {
+      // Clear auth state on refresh failure
+      await authService.logout(true);
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          await authService.logout(true);
           throw new Error("Session expired. Please login again.");
         }
-        if (error.response?.status === 500) {
-          throw new Error("Server error. Please try again later.");
-        }
+        throw new Error(
+          error.response?.data?.message || "Failed to refresh token"
+        );
       }
       throw error;
     }

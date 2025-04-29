@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from "react"
 import { LogOut, X } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { authService } from "../services/api"
+import { useAuth } from "../contexts/AuthContext" 
 
-type LogoutConfirmationProps = {
+interface LogoutConfirmationProps {
   isOpen: boolean
   onClose: () => void
+  onConfirm: () => Promise<void>
 }
 
-export default function LogoutConfirmation({ isOpen, onClose }: LogoutConfirmationProps) {
+export default function LogoutConfirmation({ isOpen, onClose, onConfirm}: LogoutConfirmationProps) {
+  const router = useRouter()
+  const { logout } = useAuth()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [animateIn, setAnimateIn] = useState(false)
 
@@ -22,15 +27,26 @@ export default function LogoutConfirmation({ isOpen, onClose }: LogoutConfirmati
     }
   }, [isOpen])
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true)
+  const handleConfirm = async () => {
     try {
+      setIsLoggingOut(true)
+
       await authService.logout()
-      // The logout function will handle redirection
+      // Clear local storage
+      localStorage.removeItem("accessToken")
+      localStorage.removeItem("refreshToken")
+      localStorage.removeItem("user")
+      
+      // Clear cookies
+      document.cookie = "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+      document.cookie = "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+      document.cookie = "role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+      
+      onClose()
+      router.push("/login")
     } catch (error) {
       console.error("Logout failed:", error)
       setIsLoggingOut(false)
-      onClose()
     }
   }
 
@@ -75,7 +91,7 @@ export default function LogoutConfirmation({ isOpen, onClose }: LogoutConfirmati
 
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <button
-                onClick={handleLogout}
+                onClick={handleConfirm}
                 disabled={isLoggingOut}
                 className="flex-1 py-2.5 px-4 rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 disabled:opacity-70 flex justify-center items-center"
               >

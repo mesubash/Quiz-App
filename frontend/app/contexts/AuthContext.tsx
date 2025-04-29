@@ -57,10 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Logout function
-  const logout = useCallback(() => {
-    clearAuthState();
-    router.push("/login");
-  }, [clearAuthState, router]);
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout()
+      clearAuthState()
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
+      throw error
+    }
+  }, [clearAuthState, router])
 
   // Refresh token if needed
   const refreshTokenIfNeeded = useCallback(async (): Promise<string | null> => {
