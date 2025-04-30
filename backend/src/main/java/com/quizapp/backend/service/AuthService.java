@@ -6,9 +6,10 @@ import com.quizapp.backend.dto.response.AuthResponse;
 import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.exception.BadRequestException;
 import com.quizapp.backend.model.User;
-import com.quizapp.backend.model.User.Role;
 import com.quizapp.backend.repository.UserRepository;
 import com.quizapp.backend.security.JwtTokenProvider;
+import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
@@ -145,21 +147,61 @@ public class AuthService {
 
     @Transactional
     public void logoutUser(HttpServletRequest request) {
-        // Get the current authentication
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try {
+            // Get the current authentication
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null) {
-            throw new RuntimeException("User is not authenticated");
+            if (authentication == null) {
+                throw new BadRequestException("User is not authenticated");
+            }
+
+            // Get username from authentication
+            String username = authentication.getName();
+
+            // Invalidate access token
+            String accessToken = getCurrentToken(request);
+            if (accessToken != null) {
+                invalidateToken(accessToken);
+            }
+
+            // Remove all refresh tokens for the user from Redis
+            String userRefreshTokensKey = "user_refresh_tokens:" + username;
+            Set<String> refreshTokens = redisTemplate.opsForSet().members(userRefreshTokensKey);
+            if (refreshTokens != null) {
+                for (String refreshToken : refreshTokens) {
+                    redisTemplate.delete("refresh:" + refreshToken);
+                }
+                redisTemplate.delete(userRefreshTokensKey);
+            }
+
+            // Clear security context
+            SecurityContextHolder.clearContext();
+
+            // Clear user sessions
+            redisTemplate.delete("user_sessions:" + username);
+
+        } catch (Exception e) {
+            log.error("Error during logout", e);
+            throw new BadRequestException("Logout failed: " + e.getMessage());
         }
+    }
 
-        // Clear the authentication context
-        SecurityContextHolder.clearContext();
-
-        // Invalidate the JWT token
-        String token = getCurrentToken(request);
-        if (token != null) {
-            invalidateToken(token);
-            
+    private void invalidateToken(String token) {
+        try {
+            long expiration = tokenProvider.getRemainingExpiration(token);
+            if (expiration > 0) {
+                String blacklistKey = "blacklist:" + token;
+                redisTemplate.opsForValue().set(blacklistKey, "true", expiration, TimeUnit.MILLISECONDS);
+                
+                // Add to user's blacklisted tokens
+                String username = tokenProvider.getUsernameFromJWT(token);
+                String userBlacklistKey = "user_blacklist:" + username;
+                redisTemplate.opsForSet().add(userBlacklistKey, token);
+                redisTemplate.expire(userBlacklistKey, expiration, TimeUnit.MILLISECONDS);
+            }
+        } catch (Exception e) {
+            log.error("Error invalidating token", e);
+            throw new BadRequestException("Token invalidation failed");
         }
     }
 
@@ -172,13 +214,7 @@ public class AuthService {
     }
 
 
-    private void invalidateToken(String token) {
-        // Store the token in Redis with an expiration time equal to the token's remaining validity
-        long expiration = tokenProvider.getRemainingExpiration(token);
-        if (expiration > 0) {
-            redisTemplate.opsForValue().set("blacklist:" + token, "true", expiration, TimeUnit.MILLISECONDS);
-        }
-    }
+    
 
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()

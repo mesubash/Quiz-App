@@ -32,11 +32,11 @@ public class AdminController {
     private final UserService userService;
     private final AdminService adminService;
 
-    @GetMapping("/get-all-users")
+    @GetMapping("/users")
     public ResponseEntity<Object> getAllUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
-    @GetMapping("/get-all-admins")
+    @GetMapping("/admins")
     public ResponseEntity<Object> getAllAdmins() {
         return ResponseEntity.ok(adminService.getAllAdmins());
     }
@@ -45,13 +45,13 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAllUsersWithDetails());
     }
 
-    @GetMapping("/get-user/{username}")
+    @GetMapping("/user/{username}")
     public ResponseEntity<UserResponse> getUser(@PathVariable String username) {
         return ResponseEntity.ok(userService.getUser(username));
     }
 
 
-    @DeleteMapping("/delete-user/{username}")
+    @DeleteMapping("/user/{username}")
     public ResponseEntity<String> deleteUser(@PathVariable String username) {
         System.out.println("Deleting user: " + username);
         adminService.deleteUser(username);
