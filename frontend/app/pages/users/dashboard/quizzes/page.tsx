@@ -5,25 +5,42 @@ import Link from "next/link"
 import { quizService } from "@/app/services/api"
 import { Search, Filter, Clock, BookOpen, Tag, ChevronDown } from "lucide-react"
 
+type Quiz = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  timeLimit: number;
+  questions: any[];
+}
+
 export default function QuizzesPage() {
-  const [quizzes, setQuizzes] = useState<any[]>([])
-  const [filteredQuizzes, setFilteredQuizzes] = useState<any[]>([])
-  const [categories, setCategories] = useState<string[]>([])
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
+  const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [visibleQuizzes, setVisibleQuizzes] = useState(6)
 
-  useEffect(() => {
+   // Update how we store and handle categories
+   const [categories, setCategories] = useState<Array<{id: string, name: string}>>([])
+
+
+   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
         const data = await quizService.getAllQuizzes()
         setQuizzes(data)
         setFilteredQuizzes(data)
 
-        // Extract unique categories
-        const uniqueCategories = Array.from(new Set(data.map((quiz: any) => quiz.category)))
-        setCategories(uniqueCategories as string[])
+        // Fixed type casting for Set and map operations
+        const uniqueCategories = Array.from(
+          new Set(data.map((quiz: Quiz) => quiz.category))
+        ).map((category) => ({
+          id: String(category).toLowerCase().replace(/\s+/g, '-'),
+          name: String(category)
+        }))
+        setCategories(uniqueCategories)
       } catch (error) {
         console.error("Error fetching quizzes:", error)
       } finally {
@@ -102,10 +119,10 @@ export default function QuizzesPage() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
-                <option value="All">All Categories</option>
+                <option key="all" value="All">All Categories</option>
                 {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category.id} value={category.name}>
+                    {category.name}
                   </option>
                 ))}
               </select>
