@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { LogOut, X } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { authService } from "../services/api"
-import { useAuth } from "../contexts/AuthContext" 
 
 interface LogoutConfirmationProps {
   isOpen: boolean
@@ -12,15 +9,12 @@ interface LogoutConfirmationProps {
   onConfirm: () => Promise<void>
 }
 
-export default function LogoutConfirmation({ isOpen, onClose, onConfirm}: LogoutConfirmationProps) {
-  const router = useRouter()
-  const { logout } = useAuth()
+export default function LogoutConfirmation({ isOpen, onClose, onConfirm }: LogoutConfirmationProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [animateIn, setAnimateIn] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      // Delay animation slightly for smoother effect
       setTimeout(() => setAnimateIn(true), 10)
     } else {
       setAnimateIn(false)
@@ -28,29 +22,29 @@ export default function LogoutConfirmation({ isOpen, onClose, onConfirm}: Logout
   }, [isOpen])
 
   const handleConfirm = async () => {
+    if (isLoggingOut) return // Prevent multiple clicks
+    
     try {
       setIsLoggingOut(true)
-
-      await authService.logout()
-      // Clear local storage
-      localStorage.removeItem("accessToken")
-      localStorage.removeItem("refreshToken")
-      localStorage.removeItem("user")
-      
-      // Clear cookies
-      document.cookie = "accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-      document.cookie = "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-      document.cookie = "role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-      
-      onClose()
-      router.push("/login")
+      await onConfirm()
+      onClose() // Close modal after successful logout
     } catch (error) {
       console.error("Logout failed:", error)
-      setIsLoggingOut(false)
+      // Still close modal and redirect on error
+      onClose()
     }
   }
 
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      setIsLoggingOut(false)
+      setAnimateIn(false)
+    }
+  }, [])
+
   if (!isOpen) return null
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

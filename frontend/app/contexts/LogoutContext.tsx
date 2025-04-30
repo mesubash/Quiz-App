@@ -1,19 +1,19 @@
 "use client"
 
 import { createContext, useContext, useState, ReactNode } from "react"
-import LogoutConfirmation from "../components/LogoutConfirmation"
+import { useRouter } from "next/navigation"
 import { useAuth } from "./AuthContext"
-
+import LogoutConfirmation from "../components/LogoutConfirmation"
 
 type LogoutContextType = {
   openLogoutModal: () => void
   closeLogoutModal: () => void
-  handleLogout: () => Promise<void>
 }
 
-export const LogoutContext = createContext<LogoutContextType | undefined>(undefined)
+const LogoutContext = createContext<LogoutContextType | undefined>(undefined)
 
 export function LogoutProvider({ children }: { children: ReactNode }) {
+  const router = useRouter()
   const { logout } = useAuth()
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
 
@@ -22,18 +22,23 @@ export function LogoutProvider({ children }: { children: ReactNode }) {
 
   const handleLogout = async () => {
     try {
+      // First notify server
       await logout()
+      // Then close modal and redirect
       closeLogoutModal()
+      window.location.href = "/login" // Use window.location for full page reload
     } catch (error) {
       console.error("Logout failed:", error)
+      closeLogoutModal()
+      window.location.href = "/login"
     }
   }
 
   return (
-    <LogoutContext.Provider value={{ openLogoutModal, closeLogoutModal, handleLogout }}>
+    <LogoutContext.Provider value={{ openLogoutModal, closeLogoutModal }}>
       {children}
       <LogoutConfirmation 
-        isOpen={isLogoutModalOpen} 
+        isOpen={isLogoutModalOpen}
         onClose={closeLogoutModal}
         onConfirm={handleLogout}
       />
@@ -43,7 +48,7 @@ export function LogoutProvider({ children }: { children: ReactNode }) {
 
 export function useLogout() {
   const context = useContext(LogoutContext)
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useLogout must be used within a LogoutProvider")
   }
   return context

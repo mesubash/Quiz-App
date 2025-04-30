@@ -3,15 +3,17 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
   console.log(`Processing request for: ${pathname}`);
 
   // Get user information from cookies
   const cookies = request.cookies;
   const role = cookies.get("role")?.value;
-  const token = cookies.get("accessToken")?.value;
-  
+  const token = request.cookies.get("accessToken")?.value;
 
-  console.log(`User role: ${role}, Has token: ${token ? "Yes" : "No"}`);
+  if (!token && request.nextUrl.pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
   // Define route mappings - keep these URLs clean in the address bar
   const routeRewrites: Record<string, string> = {

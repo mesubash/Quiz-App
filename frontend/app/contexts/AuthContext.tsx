@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { authService } from "../services/api";
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { authService } from "../services/api"
 
 // Define the User type
 type User = {
@@ -49,45 +49,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Clear authentication state
   const clearAuthState = useCallback(() => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    clearAuthCookies();
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear cookies
+    document.cookie.split(";").forEach(cookie => {
+      const [name] = cookie.split("=");
+      document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    });
+    
     setUser(null);
   }, []);
 
   // Logout function
   const logout = useCallback(async () => {
     try {
+      // First attempt server logout
       await authService.logout()
-      clearAuthState()
-      router.push("/login")
+      // Then clear context state
+      setUser(null)
     } catch (error) {
       console.error("Logout failed:", error)
+      // Still clear context state on error
+      setUser(null)
       throw error
     }
-  }, [clearAuthState, router])
-
-  // Refresh token if needed
+  }, []);
+  
   const refreshTokenIfNeeded = useCallback(async (): Promise<string | null> => {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) return null;
-
-      // Call the refresh token API
-      const response = await authService.refreshToken();
-      if (response.accessToken) {
-        localStorage.setItem("accessToken", response.accessToken);
-        setCookie("accessToken", response.accessToken);
-        return response.accessToken;
-      }
+  
+      const newToken = await authService.refreshToken();
+      return newToken;
     } catch (error) {
       console.error("Token refresh failed:", error);
-      logout(); // Call logout on failure
+      logout();
       return null;
     }
-    return null;
   }, [logout]);
+
+ 
 
   // Initialize authentication
   const initAuth = useCallback(async () => {
@@ -155,7 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
-
   return (
     <AuthContext.Provider
       value={{

@@ -27,7 +27,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!user) {
         console.log("No user found, redirecting to login")
         router.push("/login")
-      } else if (user.role !== "admin") {
+      } else if (user.role !== "ADMIN" && user.role !== "admin") {
+        // Using AND operator and checking both cases
+        console.log(user)
+        console.log(user.role)
         console.log("User is not an admin, redirecting to dashboard")
         router.push("/dashboard")
       }

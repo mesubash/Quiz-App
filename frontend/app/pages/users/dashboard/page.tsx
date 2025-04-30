@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { userService, quizService } from "@/app/services/api"
 import { BookOpen, Trophy, Clock, CheckCircle, BarChart3, Award, ArrowRight } from "lucide-react"
+import router from "next/router"
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null)
@@ -15,7 +16,7 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [profileData, historyData, quizzesData] = await Promise.all([
-          userService.getUserProfile(),
+          userService.getProfile(),
           userService.getQuizHistory(),
           quizService.getAllQuizzes(),
         ])
@@ -26,6 +27,7 @@ export default function Dashboard() {
         setRecentQuizzes(quizzesData.slice(0, 3))
       } catch (error) {
         console.error("Error fetching dashboard data:", error)
+        router.push("/login")
       } finally {
         setLoading(false)
       }

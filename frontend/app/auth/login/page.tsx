@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
@@ -17,13 +17,15 @@ export default function Login() {
   const { login } = useAuth()
 
   // Check for remembered email on component mount
-  useState(() => {
-    const rememberedEmail = localStorage.getItem("rememberedEmail")
-    if (rememberedEmail) {
-      setEmail(rememberedEmail)
-      setRememberMe(true)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const rememberedEmail = localStorage.getItem("rememberedEmail")
+      if (rememberedEmail) {
+        setEmail(rememberedEmail)
+        setRememberMe(true)
+      }
     }
-  })
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

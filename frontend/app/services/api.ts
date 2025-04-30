@@ -55,19 +55,7 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Add request interceptor to add auth header
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Update the refresh token endpoint path
+// Single interceptor for handling 401s and token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -81,9 +69,8 @@ api.interceptors.response.use(
           const token = await new Promise<string>((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           });
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         } catch (err) {
           return Promise.reject(err);
@@ -96,21 +83,30 @@ api.interceptors.response.use(
       try {
         const newAccessToken = await authService.refreshToken();
         processQueue(null, newAccessToken);
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        }
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         await authService.logout(true);
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
-
     return Promise.reject(error);
   }
+);
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 // Auth Service
@@ -159,35 +155,18 @@ export const authService = {
 
   logout: async (silent: boolean = false) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        await api.post(
-          "/auth/logout",
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      }
+      // First try to notify server
+      await api.post("/auth/logout");
+
+      // Only clear storage after successful server logout
+      clearAuthState();
     } catch (error) {
       if (!silent) {
-        console.error("Error during logout:", error);
-        throw error;
+        console.error("Logout error:", error);
       }
-    } finally {
-      // Clear localStorage
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-
-      // Clear all cookies
-      const cookies = document.cookie.split(";");
-      for (const cookie of cookies) {
-        const [name] = cookie.split("=");
-        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      }
+      // On server error, still clear local state
+      clearAuthState();
+      throw error; // Re-throw to handle in UI
     }
   },
 
@@ -250,6 +229,17 @@ export const authService = {
     const response = await api.get(endpoint);
     return response.data;
   },
+};
+const clearAuthState = () => {
+  // Clear localStorage
+  localStorage.clear();
+  sessionStorage.clear();
+
+  // Clear cookies
+  document.cookie.split(";").forEach((cookie) => {
+    const [name] = cookie.split("=");
+    document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
 };
 
 // Admin Service
@@ -345,13 +335,23 @@ export const quizService = {
 // User Service
 export const userService = {
   getProfile: async (): Promise<User> => {
-    const response = await api.get<User>("/user/profile");
-    return response.data;
+    try {
+      const response = await api.get<User>("/user/profile");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      throw error;
+    }
   },
 
   getQuizHistory: async () => {
-    const response = await api.get("/user/quiz-history");
-    return response.data;
+    try {
+      const response = await api.get("/user/quiz-history");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch quiz history:", error);
+      throw error;
+    }
   },
 
   getQuizAttempt: async (attemptId: string) => {

@@ -14,6 +14,7 @@ export default function LogoutPage() {
     setIsLoggingOut(true)
     try {
       await authService.logout()
+      window.location.href = "/login"
       // The logout function in authService will handle credential cleanup and redirection
     } catch (error) {
       console.error("Logout error:", error)
@@ -26,6 +27,12 @@ export default function LogoutPage() {
     // Get the previous location from history if available, otherwise go to dashboard
     router.back()
   }
+  useEffect(() => {
+    // Auto-logout if user hits /logout directly
+    if (typeof window !== "undefined") {
+      handleLogout()
+    }
+  }, []) 
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -70,4 +77,5 @@ export default function LogoutPage() {
       </div>
     </div>
   )
+  return null
 }
