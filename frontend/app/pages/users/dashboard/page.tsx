@@ -4,9 +4,10 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { userService, quizService } from "@/app/services/api"
 import { BookOpen, Trophy, Clock, CheckCircle, BarChart3, Award, ArrowRight } from "lucide-react"
-import router from "next/router"
+import { useRouter } from "next/navigation"
 
 export default function Dashboard() {
+  const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
   const [quizHistory, setQuizHistory] = useState<any[]>([])
   const [recentQuizzes, setRecentQuizzes] = useState<any[]>([])
@@ -34,7 +35,7 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [])
+  }, [router])
 
   if (loading) {
     return (
@@ -55,7 +56,8 @@ export default function Dashboard() {
         <p className="mt-1 text-gray-600 dark:text-gray-400">
           You've taken {profile?.quizzesTaken || 0} quizzes with an average score of {profile?.averageScore || 0}%.
         </p>
-      </div>
+      
+    </div>
 
       {/* Stats overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

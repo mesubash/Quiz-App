@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAuth } from "../../../../contexts/AuthContext"
+import { useAuth } from "../../../contexts/AuthContext"
 import { useTheme } from "next-themes"
 import { useLogout } from "@/app/contexts/LogoutContext"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
@@ -80,27 +80,27 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
     {
       title: "My Quizzes",
       icon: BookOpen,
-      href: "/dashboard/my-quizzes",
+      href: "/my-quizzes",
     },
     {
       title: "Leaderboard",
       icon: Trophy,
-      href: "/dashboard/leaderboard",
+      href: "/leaderboard",
     },
     {
       title: "Analytics",
       icon: BarChart,
-      href: "/dashboard/analytics",
+      href: "/analytics",
     },
     {
       title: "Messages",
       icon: MessageSquare,
-      href: "/dashboard/messages",
+      href: "/messages",
     },
     {
       title: "Help",
       icon: HelpCircle,
-      href: "/dashboard/help",
+      href: "/help",
     },
   ]
 
@@ -206,7 +206,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
               >
                 <DropdownMenu.Item className="outline-none">
                   <Link
-                    href="/dashboard/profile"
+                    href="/profile"
                     className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                   >
                     <User className="h-4 w-4 mr-2" />
@@ -215,7 +215,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
                 </DropdownMenu.Item>
                 <DropdownMenu.Item className="outline-none">
                   <Link
-                    href="/dashboard/settings"
+                    href="/settings"
                     className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                   >
                     <Settings className="h-4 w-4 mr-2" />

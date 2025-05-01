@@ -3,17 +3,9 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  console.log(`Processing request for: ${pathname}`);
-
-  // Get user information from cookies
   const cookies = request.cookies;
   const role = cookies.get("role")?.value;
   const token = request.cookies.get("accessToken")?.value;
-
-  if (!token && request.nextUrl.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
 
   // Define route mappings - keep these URLs clean in the address bar
   const routeRewrites: Record<string, string> = {
@@ -25,149 +17,102 @@ export function middleware(request: NextRequest) {
     "/verify-email": "/auth/verify-email",
     "/logout": "/auth/logout",
 
-    // Admin routes - map clean URLs to actual directory structure
+    // Admin routes
     "/admin": "/pages/admin",
     "/admin/users": "/pages/admin/users",
     "/admin/settings": "/pages/admin/settings",
     "/admin/quizzes": "/pages/admin/quizzes",
     "/admin/analytics": "/pages/admin/analytics",
 
-    // User routes - map clean URLs to actual directory structure
+    // User routes - directly under /pages/users
     "/dashboard": "/pages/users/dashboard",
-    "/dashboard/profile": "/pages/users/dashboard/profile",
-    "/dashboard/settings": "/pages/users/dashboard/settings",
-    "/dashboard/quizzes": "/pages/users/dashboard/quizzes",
-    "/dashboard/help": "/pages/users/dashboard/help",
-    "/dashboard/faq": "/pages/users/dashboard/faq",
-    "/dashboard/contact": "/pages/users/dashboard/contact",
+    "/quizzes": "/pages/users/quizzes",
+    "/my-quizzes": "/pages/users/my-quizzes",
+    "/profile": "/pages/users/profile",
+    "/settings": "/pages/users/settings",
+    "/leaderboard": "/pages/users/leaderboard",
+    "/history": "/pages/users/history",
+    "/help": "/pages/users/help",
   };
 
   // Create reverse mappings for redirects
-  const reverseRoutes: Record<string, string> = {
-    // Auth routes
-    "/auth/login": "/login",
-    "/auth/register": "/register",
-    "/auth/forgot-password": "/forgot-password",
-    "/auth/reset-password": "/reset-password",
-    "/auth/verify-email": "/verify-email",
+  const reverseRoutes: Record<string, string> = Object.entries(
+    routeRewrites
+  ).reduce((acc, [key, value]) => ({ ...acc, [value]: key }), {});
 
-    // Admin routes - redirect from actual paths to clean URLs
-    "/pages/admin": "/admin",
-    "/pages/admin/users": "/admin/users",
-    "/pages/admin/settings": "/admin/settings",
-    "/pages/admin/quizzes": "/admin/quizzes",
-    "/pages/admin/analytics": "/admin/analytics",
-
-    // User routes - redirect from actual paths to clean URLs
-    "/pages/users/dashboard": "/dashboard",
-    "/pages/users/dashboard/profile": "/dashboard/profile",
-    "/pages/users/dashboard/settings": "/dashboard/settings",
-    "/pages/users/dashboard/quizzes": "/dashboard/quizzes",
-    "/pages/users/dashboard/help": "/dashboard/help",
-    "/pages/users/dashboard/faq": "/dashboard/faq",
-    "/pages/users/dashboard/contact": "/dashboard/contact",
-  };
-
-  // Handle authentication and routing logic
-
-  // 1. Handle public routes first - allow access regardless of authentication
+  // 1. Handle public routes first
   if (
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/forgot-password" ||
-    pathname === "/reset-password" ||
-    pathname === "/verify-email"
+    [
+      "/login",
+      "/register",
+      "/forgot-password",
+      "/reset-password",
+      "/verify-email",
+    ].includes(pathname)
   ) {
-    // If user is already authenticated, redirect to appropriate dashboard
     if (token) {
-      // Check role (case-insensitive) to determine where to redirect
       const normalizedRole = role?.toLowerCase();
-      if (normalizedRole === "admin") {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      } else {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
+      return NextResponse.redirect(
+        new URL(
+          normalizedRole === "admin" ? "/admin" : "/dashboard",
+          request.url
+        )
+      );
+    }
+    return routeRewrites[pathname]
+      ? NextResponse.rewrite(new URL(routeRewrites[pathname], request.url))
+      : NextResponse.next();
+  }
+
+  // 2. Check authentication for protected routes
+  const isProtectedRoute =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/dashboard") ||
+    [
+      "/quizzes",
+      "/my-quizzes",
+      "/profile",
+      "/settings",
+      "/leaderboard",
+      "/history",
+    ].some((route) => pathname.startsWith(route));
+
+  if (!token && isProtectedRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // 3. Role-based access control
+  if (token) {
+    const isAdmin = role?.toLowerCase() === "admin";
+
+    // Prevent non-admins from accessing admin routes
+    if (!isAdmin && pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    // For unauthenticated users, rewrite to show auth pages
+    // Prevent admins from accessing user routes
+    if (isAdmin && !pathname.startsWith("/admin") && pathname !== "/logout") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+
+    // Handle clean URL rewrites
     if (routeRewrites[pathname]) {
-      console.log(`Rewriting ${pathname} to ${routeRewrites[pathname]}`);
       return NextResponse.rewrite(
         new URL(routeRewrites[pathname], request.url)
       );
     }
-  }
 
-  // 2. Check authentication for protected routes
-  if (
-    !token &&
-    (pathname.startsWith("/admin") || pathname.startsWith("/dashboard"))
-  ) {
-    // If not authenticated and trying to access protected routes, redirect to login
-    console.log("Unauthenticated user trying to access protected route");
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // 3. Check for role-based access
-  // For admin routes - check if user has admin role (case-insensitive comparison)
-  if (pathname.startsWith("/admin") && token) {
-    const normalizedRole = role?.toLowerCase();
-    if (normalizedRole !== "admin") {
-      console.log("Non-admin user trying to access admin route");
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Handle reverse routes for clean URLs
+    if (reverseRoutes[pathname]) {
+      return NextResponse.redirect(
+        new URL(reverseRoutes[pathname], request.url)
+      );
     }
   }
 
-  // 4. Role-specific dashboard redirection
-  // If admin tries to access user dashboard, redirect to admin dashboard
-  if (
-    pathname.startsWith("/dashboard") &&
-    token &&
-    role?.toLowerCase() === "admin"
-  ) {
-    console.log("Admin user trying to access user dashboard");
-    return NextResponse.redirect(new URL("/admin", request.url));
-  }
-
-  // 5. Handle original directory path redirects (to show clean URLs)
-  if (reverseRoutes[pathname]) {
-    console.log(`Redirecting from ${pathname} to ${reverseRoutes[pathname]}`);
-    return NextResponse.redirect(new URL(reverseRoutes[pathname], request.url));
-  }
-
-  // 6. Handle clean URL rewrites (to fetch content from actual paths)
-  if (routeRewrites[pathname]) {
-    console.log(`Rewriting ${pathname} to ${routeRewrites[pathname]}`);
-    return NextResponse.rewrite(new URL(routeRewrites[pathname], request.url));
-  }
-
-  // 7. Handle more complex dynamic routes
-
-  // Admin routes handling
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    // For admin routes
-    const targetPath =
-      pathname === "/admin" ? "/pages/admin" : `/pages${pathname}`;
-    console.log(`Rewriting admin path ${pathname} to ${targetPath}`);
-    return NextResponse.rewrite(new URL(targetPath, request.url));
-  }
-
-  // Dashboard routes handling
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
-    // For dashboard routes
-    const targetPath =
-      pathname === "/dashboard"
-        ? "/pages/users/dashboard"
-        : `/pages/users${pathname}`;
-    console.log(`Rewriting dashboard path ${pathname} to ${targetPath}`);
-    return NextResponse.rewrite(new URL(targetPath, request.url));
-  }
-
-  // For all other routes, proceed normally
   return NextResponse.next();
 }
 
-// Configure middleware to run on specific paths
 export const config = {
   matcher: [
     // Auth routes
@@ -177,19 +122,26 @@ export const config = {
     "/reset-password",
     "/verify-email",
     "/logout",
-    "/auth/:path*",
 
     // Admin routes
-    "/admin",
     "/admin/:path*",
-    "/pages/admin/:path*",
 
     // User routes
     "/dashboard",
-    "/dashboard/:path*",
-    "/pages/users/dashboard/:path*",
+    "/quizzes",
+    "/my-quizzes",
+    "/profile",
+    "/settings",
+    "/leaderboard",
+    "/history",
+    "/help",
 
-    // Keep these exclusions for static assets
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+    // Internal paths
+    "/auth/:path*",
+    "/pages/admin/:path*",
+    "/pages/users/:path*",
+
+    // Exclude static files and API routes
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

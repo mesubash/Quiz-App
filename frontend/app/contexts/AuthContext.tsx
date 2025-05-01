@@ -64,17 +64,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = useCallback(async () => {
     try {
+      // Set loading state
+      setLoading(true);
+    
       // First attempt server logout
-      await authService.logout()
+      await authService.logout(false)
       // Then clear context state
-      setUser(null)
+      clearAuthState();
+      window.location.href = "/login"; // Redirect to login page
     } catch (error) {
       console.error("Logout failed:", error)
+
       // Still clear context state on error
-      setUser(null)
       throw error
+    }finally{
+      setLoading(false);
+      setUser(null);
     }
-  }, []);
+  }, [clearAuthState]);
   
   const refreshTokenIfNeeded = useCallback(async (): Promise<string | null> => {
     try {
@@ -133,7 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Store tokens
       localStorage.setItem("accessToken", response.accessToken);
-      localStorage.setItem("refreshToken", response.refreshToken);
       localStorage.setItem("user", JSON.stringify(response.user));
       
       if (rememberMe) {

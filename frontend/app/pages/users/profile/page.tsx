@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/app/users/contexts/AuthContext"
+import { useAuth } from "../../../contexts/AuthContext"
 import { userService } from "@/app/services/api"
 import { User, Mail, Calendar, Award, CheckCircle } from "lucide-react"
 
@@ -20,14 +20,13 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         const [profileData, historyData] = await Promise.all([
-          userService.getUserProfile(),
+          userService.getProfile(),
           userService.getQuizHistory(),
         ])
 
         setProfile(profileData)
         setQuizHistory(historyData)
-        setName(profileData.name || user?.name || "")
-        setBio(profileData.bio || "")
+        setName(`${profileData.firstName || ""} ${profileData.lastName || ""}`.trim()  || "")
       } catch (error) {
         console.error("Error fetching profile data:", error)
       } finally {
@@ -68,12 +67,12 @@ export default function ProfilePage() {
       <div className="card p-6">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <div className="w-32 h-32 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600 dark:text-blue-400 shadow-md">
-            {user?.name?.charAt(0).toUpperCase() || "U"}
+            {`${profile?.firstName?.charAt(0).toUpperCase() || ""}${profile?.lastName?.charAt(0).toUpperCase() || "U"}`}
           </div>
 
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center md:text-left">
-              {profile?.name || user?.name || "User"}
+                {`${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() || "User"}
             </h1>
             <div className="flex flex-col sm:flex-row gap-2 mt-2 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start text-gray-600 dark:text-gray-400">

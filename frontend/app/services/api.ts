@@ -15,10 +15,27 @@ type User = {
   averageScore?: number;
 };
 
-type AuthResponse = {
+export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
   user: User;
+}
+export interface TokenRefreshResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+}
+const tokenManager = {
+  getAccessToken: () => localStorage.getItem("accessToken"),
+  setAccessToken: (token: string) => {
+    localStorage.setItem("accessToken", token);
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  },
+  removeAccessToken: () => {
+    localStorage.removeItem("accessToken");
+    delete api.defaults.headers.common["Authorization"];
+  },
 };
 
 type QuizAttempt = {
@@ -35,95 +52,143 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Important for receiving cookies
 });
 
-// Track refresh token state
 let isRefreshing = false;
+let isLoggingOut = false;
+
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: any) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (token) {
-      prom.resolve(token);
-    } else {
-      prom.reject(error);
+const processQueue = (error: any, token: string | null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else if (token) {
+      resolve(token);
     }
   });
   failedQueue = [];
 };
 
-// Single interceptor for handling 401s and token refresh
+// Update the response interceptor
 api.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
+  async (error) => {
+    const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        try {
-          const token = await new Promise<string>((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          });
-          originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+    if (
+      !originalRequest ||
+      isLoggingOut ||
+      error.response?.status !== 401 ||
+      originalRequest._retry ||
+      originalRequest.headers["X-Skip-Refresh"]
+    ) {
+      return Promise.reject(error);
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((token) => {
+          originalRequest.headers["Authorization"] = `Bearer ${token}`;
           return api(originalRequest);
-        } catch (err) {
-          return Promise.reject(err);
-        }
-      }
+        })
+        .catch((err) => Promise.reject(err));
+    }
 
+    try {
       originalRequest._retry = true;
       isRefreshing = true;
 
-      try {
-        const newAccessToken = await authService.refreshToken();
-        processQueue(null, newAccessToken);
-        originalRequest.headers = originalRequest.headers || {};
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        await authService.logout(true);
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
+      const { data } = await api.post<AuthResponse>(
+        "/auth/token/refresh",
+        {},
+        {
+          headers: { "X-Skip-Refresh": "true" },
+        }
+      );
+
+      if (!data.accessToken) {
+        throw new Error("No access token received");
       }
+
+      tokenManager.setAccessToken(data.accessToken);
+      processQueue(null, data.accessToken);
+
+      originalRequest.headers["Authorization"] = `Bearer ${data.accessToken}`;
+      return api(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      clearAuthState();
+      window.location.href = "/login";
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
     }
-    return Promise.reject(error);
   }
 );
+
+// Update request interceptor
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    const token = tokenManager.getAccessToken();
+    if (token && !config.headers["X-Skip-Refresh"]) {
+      if (isTokenExpired(token)) {
+        try {
+          const newToken = await authService.refreshToken();
+          config.headers["Authorization"] = `Bearer ${newToken}`;
+        } catch (error) {
+          console.warn("Preemptive token refresh failed:", error);
+        }
+      } else {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+export class TokenRefreshError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TokenRefreshError";
+  }
+}
+
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
+
 // Auth Service
 export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>("/auth/login", {
-        // Changed from /auth/login
-        email,
-        password,
-      });
+      const response = await api.post<AuthResponse>(
+        "/auth/login",
+        {
+          email,
+          password,
+        },
+        {
+          withCredentials: true, // Important for receiving cookies
+        }
+      );
 
-      const { accessToken, refreshToken, user } = response.data;
+      const { accessToken, user } = response.data;
 
-      // Store tokens and user data
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      // Only store access token and user data
+      tokenManager.setAccessToken(accessToken);
       localStorage.setItem("user", JSON.stringify(user));
 
       return response.data;
@@ -136,7 +201,7 @@ export const authService = {
           throw new Error("Unauthorized access");
         }
       }
-      throw error;
+      throw new Error("An error occurred during login");
     }
   },
 
@@ -154,67 +219,61 @@ export const authService = {
   },
 
   logout: async (silent: boolean = false) => {
+    isLoggingOut = true;
     try {
-      // First try to notify server
-      await api.post("/auth/logout");
+      // Get current access token
+      const token = localStorage.getItem("accessToken");
 
-      // Only clear storage after successful server logout
+      // Make logout request with proper headers
+      await api.post(
+        "/auth/logout",
+        {},
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            "X-Skip-Refresh": "true",
+          },
+          withCredentials: true,
+        }
+      );
+
+      // Clear all auth state
       clearAuthState();
     } catch (error) {
       if (!silent) {
         console.error("Logout error:", error);
       }
-      // On server error, still clear local state
+      // Still clear state on error
       clearAuthState();
-      throw error; // Re-throw to handle in UI
+    } finally {
+      isLoggingOut = false;
     }
   },
 
   refreshToken: async () => {
     try {
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-      if (!storedRefreshToken) {
-        // Instead of throwing, try to get refresh token from cookie
-        const cookies = document.cookie.split(";");
-        const refreshTokenCookie = cookies.find((c) =>
-          c.trim().startsWith("refreshToken=")
-        );
-        if (!refreshTokenCookie) {
-          // If no token in localStorage or cookies, handle gracefully
-          await authService.logout(true);
-          throw new Error("Session expired. Please login again.");
-        }
-        // Extract token from cookie
-        const token = refreshTokenCookie.split("=")[1];
-        localStorage.setItem("refreshToken", token);
+      const { data } = await api.post<AuthResponse>(
+        "/auth/token/refresh",
+        {},
+        { headers: { "X-Skip-Refresh": "true" } }
+      );
+
+      if (!data.accessToken) {
+        throw new TokenRefreshError("No access token received");
       }
 
-      const response = await api.post("/auth/token/refresh", {
-        token: storedRefreshToken || localStorage.getItem("refreshToken"),
-      });
-
-      const { accessToken, refreshToken } = response.data;
-
-      // Update both localStorage and cookies
-      localStorage.setItem("accessToken", accessToken);
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-        document.cookie = `refreshToken=${refreshToken}; path=/; secure; samesite=strict`;
-      }
-
-      return accessToken;
+      tokenManager.setAccessToken(data.accessToken);
+      return data.accessToken;
     } catch (error) {
-      // Clear auth state on refresh failure
-      await authService.logout(true);
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
-          throw new Error("Session expired. Please login again.");
+          throw new TokenRefreshError("Refresh token expired");
         }
-        throw new Error(
-          error.response?.data?.message || "Failed to refresh token"
-        );
+        if (error.response?.status === 403) {
+          throw new TokenRefreshError("Refresh token revoked");
+        }
       }
-      throw error;
+      throw new TokenRefreshError("Token refresh failed");
     }
   },
 
@@ -225,23 +284,25 @@ export const authService = {
     }
     return null;
   },
-  fetchProfile: async (endpoint: string) => {
-    const response = await api.get(endpoint);
-    return response.data;
-  },
 };
 const clearAuthState = () => {
   // Clear localStorage
-  localStorage.clear();
+  tokenManager.removeAccessToken();
+  localStorage.removeItem("user");
+
   sessionStorage.clear();
 
-  // Clear cookies
+  // Clear axios default headers
+  delete api.defaults.headers.common["Authorization"];
+
+  // Clear cookie (though backend should handle this)
   document.cookie.split(";").forEach((cookie) => {
     const [name] = cookie.split("=");
-    document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${
+      window.location.hostname
+    };`;
   });
 };
-
 // Admin Service
 export const adminService = {
   getAllUsers: async (): Promise<User[]> => {
