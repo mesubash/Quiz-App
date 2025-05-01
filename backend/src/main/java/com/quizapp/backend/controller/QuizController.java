@@ -20,7 +20,7 @@ public class QuizController {
     @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuizDTO> createQuiz(@RequestBody QuizDTO quizDTO) {
-        
+
         return ResponseEntity.ok(quizService.createQuiz(quizDTO));
     }
 
@@ -37,7 +37,7 @@ public class QuizController {
     @PutMapping("/{quizId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<QuizDTO> updateQuiz(
-            @PathVariable("quizId") Long quizId, 
+            @PathVariable("quizId") Long quizId,
             @RequestBody QuizDTO quizDTO) {
         return ResponseEntity.ok(quizService.updateQuiz(quizId, quizDTO));
     }

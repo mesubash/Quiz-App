@@ -43,6 +43,17 @@ public class UserService {
         }
     }
 
+
+    @Transactional
+    public UserResponse getUserByUsername(String username) {
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+        // Map to UserResponse
+        return mapToUserResponse(user);
+    }
+
     
 
     @Transactional

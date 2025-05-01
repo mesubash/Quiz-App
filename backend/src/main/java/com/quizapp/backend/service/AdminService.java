@@ -50,7 +50,7 @@ public class AdminService {
     @Transactional
     public Object getAllAdmins() {
         // Get all users with ADMIN role from the repository
-        List<User> admins = userRepository.findAllByRole(User.Role.ADMIN);
+        List<User> admins = userRepository.findAllByRole(Role.ADMIN);
 
         // Map to UserResponse list
         return mapToUserResponseList(admins);

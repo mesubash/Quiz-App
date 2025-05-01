@@ -10,10 +10,17 @@ import com.quizapp.backend.dto.response.UserResponse;
 import com.quizapp.backend.security.JwtTokenProvider;
 import com.quizapp.backend.service.AuthService;
 import jakarta.validation.Valid;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,10 +40,19 @@ public class AuthController {
             @Valid @RequestBody AuthRequest authRequest, 
             HttpServletResponse response) {
         AuthResponse authResponse = authService.authenticateUser(authRequest);
-
+        
+        // Only include essential data in response body
+        AuthResponse sanitizedResponse = AuthResponse.builder()
+            .accessToken(authResponse.getAccessToken())
+            .tokenType(authResponse.getTokenType())
+            .expiresIn(authResponse.getExpiresIn())
+            .user(authResponse.getUser())
+            .build();
+    
+        // Add refresh token as HTTP-only cookie
         addRefreshTokenCookie(response, authResponse.getRefreshToken());
-
-        return ResponseEntity.ok(authResponse);
+    
+        return ResponseEntity.ok(sanitizedResponse);
     }
 
     @PostMapping("/register")
@@ -59,13 +75,14 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response) {
         String refreshToken = extractRefreshToken(request);
-        AuthResponse authResponse = authService.refreshToken(refreshToken);
+        AuthResponse authResponse = authService.refreshAccessToken(refreshToken);
         
         // Update the refresh token cookie
         addRefreshTokenCookie(response, authResponse.getRefreshToken());
         
         return ResponseEntity.ok(authResponse);
     }
+    
 
     private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         Cookie cookie = new Cookie("refreshToken", refreshToken);

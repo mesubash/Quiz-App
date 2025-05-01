@@ -5,12 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import com.quizapp.backend.model.enums.Role;
 
 @Entity
@@ -19,7 +14,8 @@ import com.quizapp.backend.model.enums.Role;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User implements UserDetails {
+public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -36,8 +32,6 @@ public class User implements UserDetails {
     private String firstName;
     private String lastName;
 
-
-
     @Enumerated(EnumType.STRING)
     private Role role;
     @Column(name = "enabled", nullable = false)
@@ -49,7 +43,4 @@ public class User implements UserDetails {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-
-
 }
-

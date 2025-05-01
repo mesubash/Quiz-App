@@ -9,12 +9,15 @@ import com.quizapp.backend.model.User;
 import com.quizapp.backend.repository.UserRepository;
 import com.quizapp.backend.security.JwtTokenProvider;
 import java.util.Set;
+import java.util.UUID;
+
 import lombok.extern.slf4j.Slf4j;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,7 +28,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-
+import com.quizapp.backend.model.enums.Role;
+import com.quizapp.backend.exception.TooManyRequestsException;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +64,24 @@ public class AuthService {
             // Generate JWT tokens
             String accessToken = tokenProvider.generateToken(authentication);
             String refreshToken = tokenProvider.generateRefreshToken(authentication);
+            String family = UUID.randomUUID().toString();
+            // Store refresh token with family in Redis
+            String redisKey = "refresh:" + refreshToken;
+            String familyKey = "family:" + refreshToken;
+            redisTemplate.opsForValue().set(
+                redisKey,
+                authentication.getName(),
+                tokenProvider.getRefreshTokenExpirationInMs(),
+                TimeUnit.MILLISECONDS
+            );
+    
+            redisTemplate.opsForValue().set(
+                familyKey,
+                family,
+                tokenProvider.getRefreshTokenExpirationInMs(),
+                TimeUnit.MILLISECONDS
+            );
+
 
             // Store refresh token in Redis
             redisTemplate.opsForValue().set(
@@ -90,20 +112,85 @@ public class AuthService {
             throw new BadRequestException("Invalid or expired refresh token");
         }
 
-        // Get the username from the refresh token
-        String username = tokenProvider.getUsernameFromRefreshToken(refreshToken);
+        // Verify token exists in Redis
+        String redisKey = "refresh:" + refreshToken;
+        String familyKey = "family:" + refreshToken;
+        String storedUsername = redisTemplate.opsForValue().get(redisKey);
+        String tokenFamily = redisTemplate.opsForValue().get(familyKey);
+        if (storedUsername == null || tokenFamily == null) {
+            // Possible reuse attack - invalidate all user tokens
+            String username = tokenProvider.getUsernameFromRefreshToken(refreshToken);
+            invalidateAllUserTokens(username);
+            throw new BadRequestException("Refresh token has been revoked");
+        }
 
-        // Generate a new access token
-        String newAccessToken = tokenProvider.generateToken(username);
+        // Get username from token and verify it matches Redis
+        String tokenUsername = tokenProvider.getUsernameFromRefreshToken(refreshToken);
+        if (!tokenUsername.equals(storedUsername)) {
+            throw new BadRequestException("Token mismatch");
+        }
+
+        // Get user details
+        User user = userRepository.findByUsername(tokenUsername)
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+        // Generate new tokens
+        String newAccessToken = tokenProvider.generateToken(tokenUsername);
+        String newRefreshToken = tokenProvider.generateRefreshToken(tokenUsername);
+        String newFamily = UUID.randomUUID().toString();
+
+        // Update Redis - remove old token and store new one
+        redisTemplate.delete(redisKey);
+        redisTemplate.delete(familyKey);
+        // Store new refresh token with family
+        String newRedisKey = "refresh:" + newRefreshToken;
+        String newFamilyKey = "family:" + newRefreshToken;
+        redisTemplate.opsForValue().set(
+            "refresh:" + newRefreshToken,
+            tokenUsername,
+            tokenProvider.getRefreshTokenExpirationInMs(),
+            TimeUnit.MILLISECONDS
+        );
+        redisTemplate.opsForValue().set(
+            newFamilyKey,
+            newFamily,
+            tokenProvider.getRefreshTokenExpirationInMs(),
+            TimeUnit.MILLISECONDS
+        );
 
         return AuthResponse.builder()
             .accessToken(newAccessToken)
-            .refreshToken(refreshToken) 
+            .refreshToken(newRefreshToken)
             .tokenType("Bearer")
             .expiresIn(tokenProvider.getJwtExpirationInMs())
+            .user(mapToUserResponse(user))  // Include user data in response
             .build();
-    
     }
+    private void invalidateAllUserTokens(String username) {
+    // Find all refresh tokens for user
+        Set<String> userTokens = redisTemplate.keys("refresh:*").stream()
+            .filter(key -> username.equals(redisTemplate.opsForValue().get(key)))
+            .collect(Collectors.toSet());
+
+        // Delete all tokens and their families
+        userTokens.forEach(token -> {
+            redisTemplate.delete(token);
+            redisTemplate.delete("family:" + token.substring("refresh:".length()));
+        });
+    }
+    private void checkRefreshRateLimit(String username) {
+        String rateLimitKey = "rateLimit:refresh:" + username;
+        Long attempts = redisTemplate.opsForValue().increment(rateLimitKey);
+        
+        if (attempts == 1) {
+            redisTemplate.expire(rateLimitKey, 1, TimeUnit.MINUTES);
+        }
+        
+        if (attempts > 5) {
+            throw new TooManyRequestsException("Too many refresh attempts. Please wait 1 minute.");
+        }
+    }
+    
 
     
 
@@ -147,7 +234,9 @@ public class AuthService {
 
     @Transactional
     public void logoutUser(HttpServletRequest request) {
+        System.out.println("1 Logging out user...");
         try {
+            System.out.println("2 Logging out user...");
             // Get the current authentication
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -157,7 +246,7 @@ public class AuthService {
 
             // Get username from authentication
             String username = authentication.getName();
-
+            System.out.println("3 Logging out user...");
             // Invalidate access token
             String accessToken = getCurrentToken(request);
             if (accessToken != null) {
@@ -179,9 +268,9 @@ public class AuthService {
 
             // Clear user sessions
             redisTemplate.delete("user_sessions:" + username);
+            System.out.println("User " + username + " logged out successfully.");
 
         } catch (Exception e) {
-            log.error("Error during logout", e);
             throw new BadRequestException("Logout failed: " + e.getMessage());
         }
     }
@@ -200,7 +289,6 @@ public class AuthService {
                 redisTemplate.expire(userBlacklistKey, expiration, TimeUnit.MILLISECONDS);
             }
         } catch (Exception e) {
-            log.error("Error invalidating token", e);
             throw new BadRequestException("Token invalidation failed");
         }
     }
