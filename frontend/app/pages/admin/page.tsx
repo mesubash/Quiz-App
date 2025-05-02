@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { quizService } from "@/app/services/api"
+import { adminService, quizService, userService } from "@/app/services/api"
 import { Users, BookOpen, Award, Clock, X } from "lucide-react"
 import Link from "next/link"
 
@@ -42,9 +42,10 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       try {
         const quizzes = await quizService.getAllQuizzes()
+        const users = await adminService.getAllUsers()
         setStats({
           totalQuizzes: quizzes.length,
-          totalUsers: 120,
+          totalUsers: users.length,
           totalAttempts: 450,
           averageScore: 72,
         })

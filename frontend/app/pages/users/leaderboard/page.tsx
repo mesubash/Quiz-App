@@ -1,18 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { userService } from "@/app/services/api"
+import { leaderboardService, userService } from "@/app/services/api"
 import { Trophy, Medal, Users, Award, ArrowDown } from "lucide-react"
+import type { LeaderboardEntry } from "@/app/types/leaderboard"
+import DashboardLayout from "../dashboard/layout"
 
 export default function LeaderboardPage() {
-  const [leaderboard, setLeaderboard] = useState<any[]>([])
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [sortBy, setSortBy] = useState<"score" | "quizzesTaken">("score")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const data = await userService.getLeaderboard()
+        const data = await leaderboardService.getGlobalLeaderboard()
         setLeaderboard(data)
       } catch (error) {
         console.error("Error fetching leaderboard:", error)
@@ -24,13 +26,23 @@ export default function LeaderboardPage() {
     fetchLeaderboard()
   }, [])
 
+  // Calculate stats safely
+  const stats = leaderboard.length > 0 ? {
+    topScore: Math.max(...leaderboard.map(user => user.score || 0)),
+    totalParticipants: leaderboard.length,
+    mostQuizzesTaken: Math.max(...leaderboard.map(user => user.quizzesTaken || 0))
+  } : {
+    topScore: 0,
+    totalParticipants: 0,
+    mostQuizzesTaken: 0
+  }
+
   // Sort leaderboard based on selected criteria
   const sortedLeaderboard = [...leaderboard].sort((a, b) => {
     if (sortBy === "score") {
-      return b.score - a.score
-    } else {
-      return b.quizzesTaken - a.quizzesTaken
+      return (b.score || 0) - (a.score || 0)
     }
+    return (b.quizzesTaken || 0) - (a.quizzesTaken || 0)
   })
 
   if (loading) {
@@ -43,8 +55,7 @@ export default function LeaderboardPage() {
       </div>
     )
   }
-
-  return (
+  const content = (
     <div className="space-y-6">
       <div className="card p-6">
         <div className="flex items-center">
@@ -68,12 +79,11 @@ export default function LeaderboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Top Score</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {leaderboard.length > 0 ? `${Math.max(...leaderboard.map((user) => user.score))}%` : "N/A"}
+                {stats.topScore > 0 ? `${stats.topScore}%` : "N/A"}
               </p>
             </div>
           </div>
         </div>
-
         <div className="card p-6">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 mr-4">
@@ -94,7 +104,7 @@ export default function LeaderboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Most Quizzes Taken</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {leaderboard.length > 0 ? Math.max(...leaderboard.map((user) => user.quizzesTaken)) : "N/A"}
+                {stats.mostQuizzesTaken > 0 ? stats.mostQuizzesTaken : "N/A"}
               </p>
             </div>
           </div>
@@ -160,8 +170,11 @@ export default function LeaderboardPage() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {sortedLeaderboard.map((user, index) => (
-                <tr key={user.id} className={index < 3 ? "bg-blue-50 dark:bg-blue-900/20" : ""}>
+            {sortedLeaderboard.map((user, index) => (
+              <tr 
+              key={`${user.id}-${user.username}-${index}`} 
+              className={index < 3 ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+            >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {index < 3 ? (
@@ -184,10 +197,12 @@ export default function LeaderboardPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-200 font-semibold">
-                        {user.name.charAt(0).toUpperCase()}
+                      {(user.firstName || user.username).charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{user.firstName && user.lastName 
+              ? `${user.firstName} ${user.lastName}`
+              : user.username}</div>
                       </div>
                     </div>
                   </td>
@@ -205,5 +220,7 @@ export default function LeaderboardPage() {
       </div>
     </div>
   )
+
+  return <DashboardLayout>{content}</DashboardLayout>
 }
 

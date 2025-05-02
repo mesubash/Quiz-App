@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type AxiosRequestConfig } from "axios";
 import { QuizData } from "@/app/types/quiz";
+import { LeaderboardEntry, LeaderboardStats } from "../types/leaderboard";
 
 // Types
 type User = {
@@ -428,6 +429,61 @@ export const userService = {
   getQuizLeaderboard: async (quizId: string) => {
     const response = await api.get(`/leaderboard/quiz/${quizId}`);
     return response.data;
+  },
+};
+
+export const leaderboardService = {
+  // Get global leaderboard
+  getGlobalLeaderboard: async (): Promise<LeaderboardEntry[]> => {
+    try {
+      const response = await api.get<LeaderboardEntry[]>("/leaderboard");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch global leaderboard:", error);
+      throw new Error("Failed to fetch leaderboard");
+    }
+  },
+
+  // Get quiz-specific leaderboard
+  getQuizLeaderboard: async (quizId: string): Promise<LeaderboardEntry[]> => {
+    try {
+      const response = await api.get<LeaderboardEntry[]>(
+        `/leaderboard/quiz/${quizId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch leaderboard for quiz ${quizId}:`, error);
+      throw new Error("Failed to fetch quiz leaderboard");
+    }
+  },
+
+  // Calculate leaderboard statistics
+  getLeaderboardStats: (entries: LeaderboardEntry[]): LeaderboardStats => {
+    if (!entries.length) {
+      return {
+        topScore: 0,
+        totalParticipants: 0,
+        mostQuizzesTaken: 0,
+        averageScore: 0,
+      };
+    }
+
+    const totalScore = entries.reduce((sum, entry) => sum + entry.score, 0);
+
+    return {
+      topScore: Math.max(...entries.map((entry) => entry.score)),
+      totalParticipants: entries.length,
+      mostQuizzesTaken: Math.max(...entries.map((entry) => entry.quizzesTaken)),
+      averageScore: Math.round(totalScore / entries.length),
+    };
+  },
+
+  // Format rank display
+  formatRank: (rank: number): string => {
+    if (rank <= 0) return "-";
+    const suffixes = ["th", "st", "nd", "rd"];
+    const v = rank % 100;
+    return rank + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
   },
 };
 
