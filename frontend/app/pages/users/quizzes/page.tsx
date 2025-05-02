@@ -1,9 +1,12 @@
 "use client"
 
+import React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { quizService } from "@/app/services/api"
 import { Search, Filter, Clock, BookOpen, Tag, ChevronDown } from "lucide-react"
+import Dashboard from "../dashboard/page"
+import DashboardLayout from "../dashboard/layout"
 
 type Quiz = {
   id: string;
@@ -83,13 +86,13 @@ export default function QuizzesPage() {
 
   const displayedQuizzes = filteredQuizzes.slice(0, visibleQuizzes)
   const hasMoreQuizzes = filteredQuizzes.length > visibleQuizzes
-
-  return (
+  const content = (
     <div className="space-y-6">
       <div className="card p-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Browse Quizzes</h1>
         <p className="text-gray-600 dark:text-gray-400">Choose from our selection of quizzes to test your knowledge</p>
       </div>
+      
 
       {/* Filters */}
       <div className="card p-6">
@@ -159,7 +162,7 @@ export default function QuizzesPage() {
                 </div>
                 <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700">
                   <Link
-                    href={`/dashboard/quiz/${quiz.id}`}
+                    href={`/quiz/${quiz.id}`}
                     className="btn-primary w-full flex justify-center items-center hover:bg-blue-700 transition-colors duration-200"
                   >
                     Start Quiz
@@ -205,5 +208,8 @@ export default function QuizzesPage() {
       </div>
     </div>
   )
+
+  return <DashboardLayout>{content}</DashboardLayout>
+    
 }
 

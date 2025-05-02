@@ -158,7 +158,7 @@ export default function Dashboard() {
             <div className="text-center py-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <p className="text-gray-500 dark:text-gray-400">No activity yet</p>
               <Link
-                href="/dashboard/quizzes"
+                href="/quizzes"
                 className="mt-2 inline-block text-blue-600 dark:text-blue-400 hover:underline"
               >
                 Take your first quiz
