@@ -25,6 +25,13 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @layer base {
@@ -119,5 +126,12 @@ body {
 
   .input {
     @apply w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white;
+  }
+  .container {
+    @apply px-4 sm:px-6 lg:px-8 mx-auto max-w-7xl;
+  }
+
+  .mobile-menu-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden;
   }
 }

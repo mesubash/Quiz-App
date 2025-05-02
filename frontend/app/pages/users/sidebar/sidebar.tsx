@@ -24,20 +24,26 @@ import {
   LayoutDashboard,
   BarChart,
   User,
+  X,
 } from "lucide-react"
 
-interface SidebarProps {
-  onCollapsedChange?: (collapsed: boolean) => void
+export interface SidebarProps {
+  onCollapsedChange: (collapsed: boolean) => void
+  onMobileClose: () => void
+  mobileOpen: boolean
 }
 
-export function Sidebar({ onCollapsedChange }: SidebarProps) {
+export function Sidebar({
+  onCollapsedChange,
+  mobileOpen,
+  onMobileClose,
+}: SidebarProps) {
   const { user, logout } = useAuth()
   const { openLogoutModal } = useLogout()
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -46,8 +52,9 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-      if (window.innerWidth < 1024) {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) {
         setCollapsed(true)
         onCollapsedChange?.(true)
       }
@@ -64,7 +71,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
   }
 
   const toggleMobileMenu = () => {
-    setMobileOpen(!mobileOpen)
+    onMobileClose()
   }
 
   const handleLogout = () => {
@@ -109,63 +116,63 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
   }
 
   return (
-    <div
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
-      } ${collapsed ? "lg:w-20" : "lg:w-64"}`}
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+        md:translate-x-0
+        ${collapsed || isMobile ? "md:w-16" : "md:w-64"}
+        ${isMobile ? "w-16" : "w-64"}`}
     >
-      {/* Mobile Menu Button */}
-      <button
-        onClick={toggleMobileMenu}
-        className="lg:hidden fixed top-4 left-4 p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 z-50"
-      >
-        <Menu className="h-6 w-6" />
-      </button>
-
-      {/* Sidebar Content */}
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between p-3">
           <Link
             href="/"
-            className={`flex items-center ${collapsed ? "justify-center" : "justify-start"}`}
+            className={`flex items-center ${collapsed || isMobile ? "justify-center" : "justify-start"} flex-1`}
           >
-            <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white">
-              <BookOpen className="h-6 w-6" />
+            <div className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white">
+              <BookOpen className="h-5 w-5" />
             </div>
-            {!collapsed && (
-              <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
+            {!(collapsed || isMobile) && (
+              <span className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">
                 QuizMaster
               </span>
             )}
           </Link>
+          {/* Close button for mobile */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden p-1 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {/* Collapse button for desktop */}
           <button
             onClick={toggleCollapsed}
-            className="hidden lg:block p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+            className="hidden md:block p-1 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
           >
-            {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 overflow-y-auto p-2">
+          <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                  onClick={isMobile ? toggleMobileMenu : undefined}
+                  className={`flex items-center px-2 py-2 rounded-lg transition-colors ${
                     pathname === item.href
                       ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
                       : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  } ${collapsed ? "justify-center" : ""}`}
+                  } ${collapsed || isMobile ? "justify-center" : ""}`}
+                  title={collapsed || isMobile ? item.title : undefined}
                 >
                   <item.icon className="h-5 w-5" />
-                  {!collapsed && <span className="ml-3">{item.title}</span>}
+                  {!(collapsed || isMobile) && <span className="ml-3 text-sm">{item.title}</span>}
                 </Link>
               </li>
             ))}
@@ -173,34 +180,37 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
         </nav>
 
         {/* User Menu */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="p-2 border-t border-gray-200 dark:border-gray-800">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button
-                className={`flex items-center w-full p-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                  collapsed ? "justify-center" : "justify-between"
+                className={`flex items-center w-full p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                  collapsed || isMobile ? "justify-center" : "justify-between"
                 }`}
+                title={collapsed || isMobile ? user?.email || "User" : undefined}
               >
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold">
+                  <div className="flex-shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold text-xs">
                     {user?.email?.[0] || "U"}
                   </div>
-                  {!collapsed && (
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {!(collapsed || isMobile) && (
+                    <div className="ml-2">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]">
                         {user?.email || "User"}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
+                        {user?.email}
+                      </p>
                     </div>
                   )}
                 </div>
-                {!collapsed && <MoreVertical className="h-5 w-5" />}
+                {!(collapsed || isMobile) && <MoreVertical className="h-4 w-4" />}
               </button>
             </DropdownMenu.Trigger>
 
             <DropdownMenu.Portal>
               <DropdownMenu.Content
-                className="min-w-[220px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1 z-[100]"
+                className="min-w-[200px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1 z-[100]"
                 sideOffset={5}
                 align="end"
               >
@@ -250,6 +260,6 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
           </DropdownMenu.Root>
         </div>
       </div>
-    </div>
+    </aside>
   )
 }
