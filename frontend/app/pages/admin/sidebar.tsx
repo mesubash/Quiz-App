@@ -21,30 +21,38 @@ import {
   Moon,
   MoreVertical,
   BarChart,
+  X,
 } from "lucide-react"
 
 interface AdminSidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void
+  mobileOpen: boolean
+  onMobileClose: () => void
 }
 
-export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
+export function AdminSidebar({ 
+  onCollapsedChange,
+  mobileOpen,
+  onMobileClose 
+}: AdminSidebarProps) {
   const { user, logout } = useAuth()
   const { openLogoutModal } = useLogout()
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+  
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-      if (window.innerWidth < 1024) {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) {
         setCollapsed(true)
         onCollapsedChange?.(true)
       }
@@ -61,7 +69,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
   }
 
   const toggleMobileMenu = () => {
-    setMobileOpen(!mobileOpen)
+    onMobileClose()
   }
 
   const handleLogout = () => {
@@ -101,63 +109,75 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
   }
 
   return (
-    <div
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        mobileOpen ? "translate-x-0" : "-translate-x-full"
-      } ${collapsed ? "lg:w-20" : "lg:w-64"}`}
-    >
-      {/* Mobile Menu Button */}
-      <button
-        onClick={toggleMobileMenu}
-        className="lg:hidden fixed top-4 left-4 p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 z-50"
-      >
-        <Menu className="h-6 w-6" />
-      </button>
-
-      {/* Sidebar Content */}
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4">
-          <Link
-            href="/admin"
-            className={`flex items-center ${collapsed ? "justify-center" : "justify-start"}`}
-          >
-            <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white">
-              <LayoutDashboard className="h-6 w-6" />
-            </div>
-            {!collapsed && (
-              <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
-                Admin Panel
-              </span>
-            )}
-          </Link>
+    <aside
+    className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out
+      ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+      lg:translate-x-0
+      ${collapsed || isMobile ? "lg:w-20" : "lg:w-64"}
+      ${isMobile ? "w-20" : "w-64"}`}
+  >
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4">
+        <Link
+          href="/admin"
+          className={`flex items-center ${collapsed || isMobile ? "justify-center" : "justify-start"} flex-1`}
+        >
+          <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white">
+            <LayoutDashboard className={`${collapsed || isMobile ? "h-6 w-6" : "h-5 w-5"}`} />
+          </div>
+          {!(collapsed || isMobile) && (
+            <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
+              Admin Panel
+            </span>
+          )}
+        </Link>
+        {/* Close button for mobile */}
+        {mobileOpen && (
           <button
-            onClick={toggleCollapsed}
-            className="hidden lg:block p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+            onClick={toggleMobileMenu}
+            className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+            aria-label="Close sidebar"
           >
-            {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
+            <X className="h-5 w-5" />
           </button>
-        </div>
+        )}
+        {/* Collapse button for desktop */}
+        <button
+          onClick={toggleCollapsed}
+          className="hidden lg:block p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+        >
+          {collapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
+        </button>
+      </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
-          <ul className="space-y-2">
+          <ul className={`${collapsed || isMobile ? "space-y-3" : "space-y-2"}`}>
             {menuItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                  onClick={isMobile ? toggleMobileMenu : undefined}
+                  className={`flex items-center ${
+                    collapsed || isMobile ? "p-3" : "px-4 py-3"
+                  } rounded-lg transition-all duration-200 ${
                     pathname === item.href
                       ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  } ${collapsed ? "justify-center" : ""}`}
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:scale-105"
+                  } ${collapsed || isMobile ? "justify-center" : ""}`}
+                  title={collapsed || isMobile ? item.title : undefined}
                 >
-                  <item.icon className="h-5 w-5" />
-                  {!collapsed && <span className="ml-3">{item.title}</span>}
+                  <item.icon
+                    className={`${
+                      collapsed || isMobile ? "h-6 w-6" : "h-5 w-5"
+                    } transition-transform duration-200`}
+                  />
+                  {!(collapsed || isMobile) && <span className="ml-3">{item.title}</span>}
                 </Link>
               </li>
             ))}
@@ -169,30 +189,41 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button
-                className={`flex items-center w-full p-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                  collapsed ? "justify-center" : "justify-between"
+                className={`flex items-center w-full ${
+                  collapsed || isMobile ? "p-3" : "p-3"
+                } rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition-all duration-200 ${
+                  collapsed || isMobile ? "justify-center" : "justify-between"
                 }`}
+                title={collapsed || isMobile ? user?.email || "Admin" : undefined}
               >
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold">
+                  <div
+                    className={`flex-shrink-0 ${
+                      collapsed || isMobile ? "h-9 w-9" : "h-8 w-8"
+                    } rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold transition-all duration-200 hover:scale-105`}
+                  >
                     {user?.email?.[0]?.toUpperCase() || "A"}
                   </div>
-                  {!collapsed && (
+                  {!(collapsed || isMobile) && (
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]">
                         {user?.email || "Admin"}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
+                        {user?.email}
+                      </p>
                     </div>
                   )}
                 </div>
-                {!collapsed && <MoreVertical className="h-5 w-5" />}
+                {!(collapsed || isMobile) && (
+                  <MoreVertical className="h-5 w-5" />
+                )}
               </button>
             </DropdownMenu.Trigger>
 
             <DropdownMenu.Portal>
               <DropdownMenu.Content
-                className="min-w-[220px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1 z-50"
+                className="min-w-[220px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1 z-[100]"
                 sideOffset={5}
                 align="end"
               >
@@ -210,12 +241,12 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
                     onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                     className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                   >
-                    {theme === "dark" ? (
-                      <Sun className="h-4 w-4 mr-2" />
-                    ) : (
-                      <Moon className="h-4 w-4 mr-2" />
-                    )}
                     Toggle Theme
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4 ml-2" />
+                    ) : (
+                      <Moon className="h-4 w-4 ml-2" />
+                    )}
                   </button>
                 </DropdownMenu.Item>
                 <DropdownMenu.Item className="outline-none">
@@ -242,6 +273,6 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
           </DropdownMenu.Root>
         </div>
       </div>
-    </div>
+    </aside>
   )
 }
