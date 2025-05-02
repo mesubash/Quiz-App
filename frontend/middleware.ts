@@ -23,6 +23,7 @@ export function middleware(request: NextRequest) {
     "/admin/settings": "/pages/admin/settings",
     "/admin/quizzes": "/pages/admin/quizzes",
     "/admin/analytics": "/pages/admin/analytics",
+    "/admin/help": "/pages/admin/help",
 
     // User routes - directly under /pages/users
     "/dashboard": "/pages/users/dashboard",
@@ -83,6 +84,7 @@ export function middleware(request: NextRequest) {
       "/history",
       "/analytics",
       "/messages",
+      "/help",
     ].some((route) => pathname.startsWith(route));
 
   if (!token && isProtectedRoute) {
