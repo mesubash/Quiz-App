@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useTheme } from "@/app/users/contexts/ThemeContext"
+import { useTheme } from "../../../contexts/ThemeContext"
 import { Bell, Mail, Lock, Eye, EyeOff, Save } from "lucide-react"
 
 export default function SettingsPage() {
