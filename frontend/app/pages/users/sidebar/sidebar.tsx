@@ -119,60 +119,73 @@ export function Sidebar({
     <aside
       className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0
-        ${collapsed || isMobile ? "md:w-16" : "md:w-64"}
-        ${isMobile ? "w-16" : "w-64"}`}
+        lg:translate-x-0
+        ${collapsed || isMobile ? "lg:w-20" : "lg:w-64"}
+        ${isMobile ? "w-20" : "w-64"}`}
     >
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-3">
+        <div className="flex items-center justify-between p-4">
           <Link
             href="/"
             className={`flex items-center ${collapsed || isMobile ? "justify-center" : "justify-start"} flex-1`}
           >
-            <div className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white">
-              <BookOpen className="h-5 w-5" />
+            <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white">
+              <BookOpen className={`${collapsed || isMobile ? "h-8 w-8" : "h-6 w-6"}`} />
             </div>
             {!(collapsed || isMobile) && (
-              <span className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">
+              <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
                 QuizMaster
               </span>
             )}
           </Link>
           {/* Close button for mobile */}
-          <button
-            onClick={toggleMobileMenu}
-            className="md:hidden p-1 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
-            aria-label="Close sidebar"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          {mobileOpen && (
+            <button
+              onClick={toggleMobileMenu}
+              className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+              aria-label="Close sidebar"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          )}
           {/* Collapse button for desktop */}
           <button
             onClick={toggleCollapsed}
-            className="hidden md:block p-1 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400"
+            className="hidden lg:block h-10 w-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 text-white flex items-center justify-center hover:scale-110 hover:shadow-md transition-all duration-200"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {collapsed ? (
+              <ChevronRight className="h-6 w-6 transform rotate-0 transition-transform duration-200" />
+            ) : (
+              <ChevronLeft className="h-6 w-6 transform rotate-0 transition-transform duration-200" />
+            )}
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-2">
-          <ul className="space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4">
+          <ul className={`${collapsed || isMobile ? "space-y-3" : "space-y-2"}`}>
             {menuItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   onClick={isMobile ? toggleMobileMenu : undefined}
-                  className={`flex items-center px-2 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center ${
+                    collapsed || isMobile ? "p-3" : "px-4 py-3"
+                  } rounded-lg transition-all duration-200 ${
                     pathname === item.href
                       ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:scale-105"
                   } ${collapsed || isMobile ? "justify-center" : ""}`}
                   title={collapsed || isMobile ? item.title : undefined}
                 >
-                  <item.icon className="h-5 w-5" />
-                  {!(collapsed || isMobile) && <span className="ml-3 text-sm">{item.title}</span>}
+                  <item.icon
+                    className={`${
+                      collapsed || isMobile ? "h-6 w-6" : "h-5 w-5"
+                    } transition-transform duration-200`}
+                  />
+                  {!(collapsed || isMobile) && <span className="ml-3">{item.title}</span>}
                 </Link>
               </li>
             ))}
@@ -180,21 +193,27 @@ export function Sidebar({
         </nav>
 
         {/* User Menu */}
-        <div className="p-2 border-t border-gray-200 dark:border-gray-800">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button
-                className={`flex items-center w-full p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                className={`flex items-center w-full ${
+                  collapsed || isMobile ? "p-3" : "p-3"
+                } rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 transition-all duration-200 ${
                   collapsed || isMobile ? "justify-center" : "justify-between"
                 }`}
                 title={collapsed || isMobile ? user?.email || "User" : undefined}
               >
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold text-xs">
+                  <div
+                    className={`flex-shrink-0 ${
+                      collapsed || isMobile ? "h-9 w-9" : "h-8 w-8"
+                    } rounded-full bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center text-white font-semibold transition-all duration-200 hover:scale-105`}
+                  >
                     {user?.email?.[0] || "U"}
                   </div>
                   {!(collapsed || isMobile) && (
-                    <div className="ml-2">
+                    <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]">
                         {user?.email || "User"}
                       </p>
@@ -204,13 +223,15 @@ export function Sidebar({
                     </div>
                   )}
                 </div>
-                {!(collapsed || isMobile) && <MoreVertical className="h-4 w-4" />}
+                {!(collapsed || isMobile) && (
+                  <MoreVertical className="h-5 w-5" />
+                )}
               </button>
             </DropdownMenu.Trigger>
 
             <DropdownMenu.Portal>
               <DropdownMenu.Content
-                className="min-w-[200px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1 z-[100]"
+                className="min-w-[220px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-1 z-[100]"
                 sideOffset={5}
                 align="end"
               >
@@ -237,12 +258,12 @@ export function Sidebar({
                     onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                     className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                   >
-                    {theme === "dark" ? (
-                      <Sun className="h-4 w-4 mr-2" />
-                    ) : (
-                      <Moon className="h-4 w-4 mr-2" />
-                    )}
                     Toggle Theme
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4 ml-2" />
+                    ) : (
+                      <Moon className="h-4 w-4 ml-2" />
+                    )}
                   </button>
                 </DropdownMenu.Item>
                 <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
