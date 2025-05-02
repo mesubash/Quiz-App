@@ -56,16 +56,19 @@ export default function DashboardLayout({
           ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}
           ml-0 w-full`}
       >
-        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-          {/* Mobile menu button */}
+      <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        {/* Left side - Mobile menu button */}
+        <div className="flex-1 flex items-center">
           <button
             onClick={() => setMobileMenuOpen(true)}
             className="lg:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <Menu className="h-6 w-6" />
           </button>
+        </div>
 
-          {/* Theme toggle */}
+        {/* Right side - Theme toggle */}
+        <div className="flex items-center">
           <button
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
@@ -73,7 +76,8 @@ export default function DashboardLayout({
           >
             {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-        </header>
+        </div>
+      </header>
 
         <main className="flex-1 bg-gray-50 dark:bg-gray-900 p-4 md:p-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto">{children}</div>
