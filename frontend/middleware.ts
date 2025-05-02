@@ -34,6 +34,8 @@ export function middleware(request: NextRequest) {
     "/history": "/pages/users/history",
     "/help": "/pages/users/help",
     "/contact": "/pages/users/contact",
+    "/messages": "/pages/users/messages",
+    "/analytics": "/pages/users/analytics",
   };
 
   // Create reverse mappings for redirects
@@ -79,6 +81,8 @@ export function middleware(request: NextRequest) {
       "/settings",
       "/leaderboard",
       "/history",
+      "/analytics",
+      "/messages",
     ].some((route) => pathname.startsWith(route));
 
   if (!token && isProtectedRoute) {
@@ -140,6 +144,8 @@ export const config = {
     "/history",
     "/help",
     "/contact",
+    "/messages",
+    "/analytics",
 
     // Internal paths
     "/auth/:path*",
