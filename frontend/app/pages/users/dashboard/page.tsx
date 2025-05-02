@@ -108,7 +108,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
             </div>
             <Link
-              href="/dashboard/profile"
+              href="/profile"
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
             >
               View all
@@ -175,7 +175,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Available Quizzes</h2>
             </div>
             <Link
-              href="/dashboard/quizzes"
+              href="/quizzes"
               className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
             >
               View all
@@ -203,7 +203,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <Link
-                    href={`/dashboard/quiz/${quiz.id}`}
+                    href={`/quiz/${quiz.id}`}
                     className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm"
                   >
                     Start Quiz

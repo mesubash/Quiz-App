@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ChevronDown, ChevronUp, Search } from "lucide-react"
+import DashboardLayout from "../dashboard/layout"
 
 export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -54,8 +55,7 @@ export default function HelpPage() {
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index)
   }
-
-  return (
+  const content = (
     <div className="space-y-6">
       <div className="card p-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Help Center</h1>
@@ -117,11 +117,14 @@ export default function HelpPage() {
         <p className="text-gray-600 dark:text-gray-400 mb-4">
           If you couldn't find the answer to your question, feel free to contact our support team.
         </p>
-        <a href="/dashboard/contact" className="btn-primary inline-block">
+        <a href="/contact" className="btn-primary inline-block">
           Contact Support
         </a>
       </div>
     </div>
   )
+
+  return <DashboardLayout>{content}</DashboardLayout>
+    
 }
 

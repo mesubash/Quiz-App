@@ -9,24 +9,25 @@ import { Sidebar } from "../sidebar/sidebar"
 import { Footer } from "../../../components/footer"
 import { Sun, Moon } from "lucide-react"
 
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user } = useAuth()
+  const { user,loading } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  // Protect the dashboard route
+  // Update auth check
   useEffect(() => {
     setMounted(true)
-    if (!user) {
+    if (!loading && !user) {
       router.push("/login")
     }
-  }, [user, router])
+  }, [user, loading, router])
 
   if (!mounted || !user) {
     return null // Don't render anything while checking authentication

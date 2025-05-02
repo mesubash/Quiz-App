@@ -4,6 +4,8 @@ import type React from "react"
 
 import { useState } from "react"
 import { Send, Mail, Phone, MapPin, CheckCircle } from "lucide-react"
+import Dashboard from "../dashboard/page"
+import DashboardLayout from "../dashboard/layout"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -37,8 +39,7 @@ export default function ContactPage() {
       setMessage("")
     }, 1000)
   }
-
-  return (
+  const content = (
     <div className="space-y-6">
       <div className="card p-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Contact Us</h1>
@@ -202,5 +203,8 @@ export default function ContactPage() {
       </div>
     </div>
   )
+
+  return <DashboardLayout>{content}</DashboardLayout>
+    
 }
 

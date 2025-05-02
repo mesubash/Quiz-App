@@ -33,6 +33,7 @@ export function middleware(request: NextRequest) {
     "/leaderboard": "/pages/users/leaderboard",
     "/history": "/pages/users/history",
     "/help": "/pages/users/help",
+    "/contact": "/pages/users/contact",
   };
 
   // Create reverse mappings for redirects
@@ -48,9 +49,12 @@ export function middleware(request: NextRequest) {
       "/forgot-password",
       "/reset-password",
       "/verify-email",
+      "/help",
+      "/contact",
     ].includes(pathname)
   ) {
-    if (token) {
+    if (token && !["/help", "/contact"].includes(pathname)) {
+      // Only redirect authenticated users for auth routes, not help/contact
       const normalizedRole = role?.toLowerCase();
       return NextResponse.redirect(
         new URL(
@@ -135,6 +139,7 @@ export const config = {
     "/leaderboard",
     "/history",
     "/help",
+    "/contact",
 
     // Internal paths
     "/auth/:path*",
