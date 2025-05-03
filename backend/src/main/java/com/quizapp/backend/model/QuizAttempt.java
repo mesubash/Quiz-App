@@ -6,14 +6,17 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import com.quizapp.backend.model.enums.AttemptStatus;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "quiz_attempts")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuizAttempt {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -39,7 +42,7 @@ public class QuizAttempt {
     private AttemptStatus status = AttemptStatus.IN_PROGRESS;
 
     @OneToMany(mappedBy = "quizAttempt", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserAnswer> userAnswers;
+    private final List<UserAnswer> userAnswers = new ArrayList<>();
 
     @PrePersist
     private void initializeDefaults() {
@@ -51,6 +54,4 @@ public class QuizAttempt {
         }
     }
 
-    
 }
-

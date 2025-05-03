@@ -2,6 +2,7 @@ package com.quizapp.backend.service;
 
 import com.quizapp.backend.dto.*;
 import com.quizapp.backend.exception.ResourceNotFoundException;
+import com.quizapp.backend.exception.BadRequestException;
 import com.quizapp.backend.model.*;
 import com.quizapp.backend.model.enums.AttemptStatus;
 import com.quizapp.backend.repository.*;
@@ -12,12 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-import com.quizapp.backend.exception.BadRequestException;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +23,7 @@ public class QuizAttemptService {
     private final QuizAttemptRepository attemptRepository;
     private final QuizRepository quizRepository;
     private final UserRepository userRepository;
+    private final UserAnswerRepository userAnswerRepository;
 
     @Transactional
     public QuizAttemptDTO startAttempt(Long quizId) {
@@ -52,6 +50,7 @@ public class QuizAttemptService {
         QuizAttempt savedAttempt = attemptRepository.save(attempt);
         return mapToDTO(savedAttempt);
     }
+
     @Transactional
     public QuizResultDTO submitAttempt(Long attemptId, SubmissionDTO submission) {
         QuizAttempt attempt = attemptRepository.findById(attemptId)
@@ -77,6 +76,7 @@ public class QuizAttemptService {
 
         int score = 0;
         List<QuestionResultDTO> questionResults = new ArrayList<>();
+        List<UserAnswer> userAnswers = new ArrayList<>();
 
         for (AnswerSubmissionDTO answer : submission.getAnswers()) {
             Question question = attempt.getQuiz().getQuestions().stream()
@@ -96,6 +96,15 @@ public class QuizAttemptService {
                 score++;
             }
 
+            // Save UserAnswer entity
+            UserAnswer userAnswer = UserAnswer.builder()
+                    .quizAttempt(attempt)
+                    .question(question)
+                    .selectedOptionIds(new ArrayList<>(selectedOptionIds))
+                    .isCorrect(isCorrect)
+                    .build();
+            userAnswers.add(userAnswer);
+
             questionResults.add(QuestionResultDTO.builder()
                     .questionId(question.getId())
                     .questionText(question.getText())
@@ -105,6 +114,11 @@ public class QuizAttemptService {
                     .selectedOptionIds(new ArrayList<>(selectedOptionIds))
                     .build());
         }
+
+        // Save all user answers
+        userAnswerRepository.saveAll(userAnswers);
+        attempt.getUserAnswers().clear();
+        attempt.getUserAnswers().addAll(userAnswers);
 
         long timeTaken = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
         attempt.setTimeTakenSeconds((int) timeTaken);
@@ -122,13 +136,11 @@ public class QuizAttemptService {
                 .score(score)
                 .maxPossibleScore(attempt.getQuiz().getQuestions().size())
                 .percentage(percentage)
-                .timeTakenSeconds((int) timeTaken) // Ensure this is set
+                .timeTakenSeconds((int) timeTaken)
                 .completedAt(attempt.getCompletedAt())
                 .questionResults(questionResults)
                 .build();
     }
-
-    
 
     @Transactional(readOnly = true)
     public List<QuizAttemptDTO> getUserAttempts() {

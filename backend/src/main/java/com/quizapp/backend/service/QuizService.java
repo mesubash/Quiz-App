@@ -115,7 +115,7 @@ public class QuizService {
                                 .map(answer -> QuestionResultDTO.builder()
                                         .questionId(answer.getQuestion().getId())
                                         .questionText(answer.getQuestion().getText())
-                                        .selectedOptionIds(List.of(answer.getOption().getId())) // Fix selectedOptionIds
+                                        .selectedOptionIds(answer.getSelectedOptionIds()) 
                                         .correctOptionIds(answer.getQuestion().getOptions().stream()
                                                 .filter(Option::isCorrect)
                                                 .map(Option::getId)

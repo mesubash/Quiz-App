@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "user_answers")
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserAnswer {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,23 +27,16 @@ public class UserAnswer {
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "option_id", nullable = false)
-    private Option option;
-
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "option_id", nullable = false)
+    // private Option option;
+    @ElementCollection
+    @CollectionTable(name = "user_answer_options", joinColumns = @JoinColumn(name = "user_answer_id"))
+    @Column(name = "option_id")
+    private List<Long> selectedOptionIds = new ArrayList<>();
     private boolean isCorrect = false;
 
     @CreationTimestamp
     private LocalDateTime answeredAt;
 
-    public void setSelectedAnswer(Object selectedAnswer) {
-        if (selectedAnswer instanceof Option) {
-            this.option = (Option) selectedAnswer;
-        } else if (selectedAnswer instanceof String) {
-            this.option = new Option();
-            this.option.setOptionText((String) selectedAnswer);
-        } else {
-            throw new IllegalArgumentException("Invalid answer type: " + selectedAnswer.getClass().getName());
-        }
-    }
 }

@@ -79,11 +79,17 @@ CREATE TABLE user_answers (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     attempt_id BIGINT NOT NULL,
     question_id BIGINT NOT NULL,
-    option_id BIGINT NOT NULL,
     is_correct BOOLEAN DEFAULT FALSE,
     answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (attempt_id) REFERENCES quiz_attempts(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+    FOREIGN KEY (option_id) REFERENCES options(id) ON DELETE CASCADE
+);
+CREATE TABLE user_answer_options (
+    user_answer_id BIGINT NOT NULL,
+    option_id BIGINT NOT NULL,
+    PRIMARY KEY (user_answer_id, option_id),
+    FOREIGN KEY (user_answer_id) REFERENCES user_answers(id) ON DELETE CASCADE,
     FOREIGN KEY (option_id) REFERENCES options(id) ON DELETE CASCADE
 );
 
