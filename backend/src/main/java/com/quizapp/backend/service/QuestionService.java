@@ -98,9 +98,6 @@ public class QuestionService {
         return mapToDTO(savedQuestion);
     }
 
-
-    
-
     private QuestionDTO mapToDTO(Question question) {
         return QuestionDTO.builder()
                 .id(question.getId())
@@ -113,17 +110,17 @@ public class QuestionService {
                 .quizId(question.getQuiz().getId())
                 .selectedOptions(null) // This will be populated during quiz submission
                 .correctOptions(question.getOptions() != null ? question.getOptions().stream()
-                .filter(Option::isCorrect)
-                .map(option -> option.getId().intValue()) // Convert Long to Integer
-                .collect(Collectors.toList()) : List.of()) // Handle null options
+                        .filter(Option::isCorrect)
+                        .map(option -> option.getId().intValue()) // Convert Long to Integer
+                        .collect(Collectors.toList()) : List.of()) // Handle null options
                 .options(question.getOptions() != null ? question.getOptions().stream()
                         .map(option -> OptionDTO.builder()
-                                .id(option.getId())
-                                .text(option.getOptionText())
-                                .isCorrect(option.isCorrect())
-                                .questionId(option.getQuestion().getId())
-                                .build())
-                        .toList() : List.of()) // Handle null options
+                        .id(option.getId())
+                        .text(option.getOptionText())
+                        .isCorrect(option.isCorrect())
+                        .build())
+                        .collect(Collectors.toList())
+                        :List.of()) 
                 .build();
     }
 
@@ -135,19 +132,19 @@ public class QuestionService {
                 .explanation(questionDTO.getExplanation())
                 .quiz(quiz)
                 .build();
-    
+
         if (questionDTO.getOptions() != null) {
             List<Option> options = questionDTO.getOptions().stream()
                     .map(optionDTO -> Option.builder()
-                            .optionText(optionDTO.getText())
-                            .isCorrect(optionDTO.getIsCorrect()) // Map isCorrect flag
-                            .question(question)
-                            .build())
+                    .optionText(optionDTO.getText())
+                    .isCorrect(optionDTO.getIsCorrect()) // Map isCorrect flag
+                    .question(question)
+                    .build())
                     .toList();
             question.setOptions(options);
         }
-    
+
         return question;
     }
-    
+
 }

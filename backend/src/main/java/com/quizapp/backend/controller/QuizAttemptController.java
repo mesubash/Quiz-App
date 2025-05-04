@@ -4,11 +4,16 @@ import com.quizapp.backend.dto.QuizAttemptDTO;
 import com.quizapp.backend.dto.QuizResultDTO;
 import com.quizapp.backend.dto.SubmissionDTO;
 import com.quizapp.backend.service.QuizAttemptService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
+
+import com.quizapp.backend.dto.DetailedQuizAttemptDTO;
 
 @RestController
 @RequestMapping("/api/attempts")
@@ -24,8 +29,19 @@ public class QuizAttemptController {
             throw new IllegalArgumentException("Quiz ID is required");
         }
 
-        QuizAttemptDTO attempt = quizAttemptService.startAttempt(quizId);
-        return ResponseEntity.ok(attempt);
+        Map<String, Object> response = quizAttemptService.startNewAttempt(quizId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/resume/{quizId}")
+    public ResponseEntity<?> resumeQuizAttempt(@PathVariable Long quizId) {
+        Map<String, Object> response = quizAttemptService.resumeAttempt(quizId);
+        if (response == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "message", "No active attempt found for the specified quiz."
+            ));
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{attemptId}/submit")
@@ -69,4 +85,14 @@ public class QuizAttemptController {
     public ResponseEntity<List<QuizAttemptDTO>> getUserAttempts() {
         return ResponseEntity.ok(quizAttemptService.getUserAttempts());
     }
+
+    @GetMapping("/user/{attemptId}")
+    public ResponseEntity<DetailedQuizAttemptDTO> getUserAttemptById(@PathVariable Long attemptId) {
+        DetailedQuizAttemptDTO attempt = quizAttemptService.getUserAttemptById(attemptId);
+        if (attempt == null) {
+            return ResponseEntity.status(404).body(null);
+        }
+        return ResponseEntity.ok(attempt);
+    }
+
 }

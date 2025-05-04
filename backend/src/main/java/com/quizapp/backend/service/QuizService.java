@@ -39,23 +39,23 @@ public class QuizService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    
+
         quiz.setCreatedBy(user);
         quiz.setTitle(quizDTO.getTitle());
         quiz.setDescription(quizDTO.getDescription());
         quiz.setTimeLimitMinutes(quizDTO.getTimeLimitMinutes());
         quiz.setPublished(false); // Default to unpublished
-    
+
         // Map questions from DTO to entity
         List<Question> questions = quizDTO.getQuestions().stream()
                 .map(questionDTO -> mapToQuestionEntity(questionDTO, quiz))
                 .collect(Collectors.toList());
         quiz.setQuestions(questions);
-    
+
         // Calculate quiz difficulty
         Difficulty calculatedDifficulty = calculateQuizDifficulty(questions);
         quiz.setDifficulty(calculatedDifficulty);
-    
+
         Quiz savedQuiz = quizRepository.save(quiz);
         return mapToDTO(savedQuiz);
     }
@@ -68,21 +68,20 @@ public class QuizService {
                 .explanation(questionDTO.getExplanation())
                 .quiz(quiz)
                 .build();
-    
+
         if (questionDTO.getOptions() != null) {
             List<Option> options = questionDTO.getOptions().stream()
                     .map(optionDTO -> Option.builder()
-                            .optionText(optionDTO.getText())
-                            .isCorrect(optionDTO.getIsCorrect())
-                            .question(question)
-                            .build())
+                    .optionText(optionDTO.getText())
+                    .isCorrect(optionDTO.getIsCorrect())
+                    .question(question)
+                    .build())
                     .toList();
             question.setOptions(options);
         }
-    
+
         return question;
     }
-
 
     @Transactional(readOnly = true)
     public List<QuizDTO> getAllQuizzes() {
@@ -91,53 +90,51 @@ public class QuizService {
                 .collect(Collectors.toList());
     }
 
-
     @Transactional(readOnly = true)
     public QuizDTO getQuizById(Long id) {
         Quiz quiz = quizRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
         return mapToDTO(quiz);
     }
+
     public List<QuizResultDTO> getQuizHistoryByQuizId(Long quizId) {
         List<QuizAttempt> attempts = quizAttemptRepository.findByQuizId(quizId);
-    
+
         return attempts.stream()
                 .map(attempt -> QuizResultDTO.builder()
-                        .attemptId(attempt.getId())
-                        .quizId(attempt.getQuiz().getId())
-                        .quizTitle(attempt.getQuiz().getTitle())
-                        .score(attempt.getScore())
-                        .maxPossibleScore(attempt.getQuiz().getQuestions().size()) // Use the number of questions as max score
-                        .percentage((attempt.getScore() * 100.0) / attempt.getQuiz().getQuestions().size())
-                        .completedAt(attempt.getCompletedAt())
-                        .timeTakenSeconds(attempt.getTimeTakenSeconds())
-                        .questionResults(attempt.getUserAnswers().stream()
-                                .map(answer -> QuestionResultDTO.builder()
-                                        .questionId(answer.getQuestion().getId())
-                                        .questionText(answer.getQuestion().getText())
-                                        .selectedOptionIds(answer.getSelectedOptionIds()) 
-                                        .correctOptionIds(answer.getQuestion().getOptions().stream()
-                                                .filter(Option::isCorrect)
-                                                .map(Option::getId)
-                                                .collect(Collectors.toList()))
-                                        .correct(answer.isCorrect())
-                                        .build())
+                .attemptId(attempt.getId())
+                .quizId(attempt.getQuiz().getId())
+                .quizTitle(attempt.getQuiz().getTitle())
+                .score(attempt.getScore())
+                .maxPossibleScore(attempt.getQuiz().getQuestions().size()) // Use the number of questions as max score
+                .percentage((attempt.getScore() * 100.0) / attempt.getQuiz().getQuestions().size())
+                .completedAt(attempt.getCompletedAt())
+                .timeTakenSeconds(attempt.getTimeTakenSeconds())
+                .questionResults(attempt.getUserAnswers().stream()
+                        .map(answer -> QuestionResultDTO.builder()
+                        .questionId(answer.getQuestion().getId())
+                        .questionText(answer.getQuestion().getText())
+                        .selectedOptionIds(answer.getSelectedOptionIds())
+                        .correctOptionIds(answer.getQuestion().getOptions().stream()
+                                .filter(Option::isCorrect)
+                                .map(Option::getId)
                                 .collect(Collectors.toList()))
+                        .correct(answer.isCorrect())
                         .build())
+                        .collect(Collectors.toList()))
+                .build())
                 .collect(Collectors.toList());
     }
-
-
 
     @Transactional
     public QuizDTO updateQuiz(Long id, QuizDTO quizDTO) {
         Quiz quiz = quizRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
-    
+
         quiz.setTitle(quizDTO.getTitle());
         quiz.setDescription(quizDTO.getDescription());
         quiz.setTimeLimitMinutes(quizDTO.getTimeLimitMinutes());
-    
+
         // Recalculate difficulty based on updated questions
         if (quiz.getQuestions() != null && !quiz.getQuestions().isEmpty()) {
             Difficulty calculatedDifficulty = calculateQuizDifficulty(quiz.getQuestions());
@@ -145,14 +142,14 @@ public class QuizService {
         } else {
             quiz.setDifficulty(Difficulty.UNASSIGNED);
         }
-    
+
         return mapToDTO(quizRepository.save(quiz));
     }
 
     @Transactional
     public void deleteQuiz(Long id) {
         Quiz quiz = quizRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Quiz not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException("Quiz not found with id: " + id));
         quizRepository.delete(quiz);
     }
 
@@ -190,35 +187,39 @@ public class QuizService {
                         .collect(Collectors.toList()) : List.of()) // Handle null options
                 .options(question.getOptions() != null ? question.getOptions().stream()
                         .map(option -> OptionDTO.builder()
-                                .id(option.getId())
-                                .text(option.getOptionText())
-                                .isCorrect(option.isCorrect())
-                                .questionId(option.getQuestion().getId())
-                                .build())
+                        .id(option.getId())
+                        .text(option.getOptionText())
+                        .isCorrect(option.isCorrect())
+                        .build())
                         .toList() : List.of()) // Handle null options
                 .build();
     }
+
     private Difficulty calculateQuizDifficulty(List<Question> questions) {
         if (questions.isEmpty()) {
             return Difficulty.UNASSIGNED;
         }
-    
+
         // Assign numerical values to difficulty levels
         final int EASY_SCORE = 1;
         final int MEDIUM_SCORE = 2;
         final int HARD_SCORE = 3;
-    
+
         // Calculate the average difficulty score
         double averageDifficulty = questions.stream()
                 .mapToInt(q -> switch (q.getDifficulty()) {
-                    case EASY -> EASY_SCORE;
-                    case MEDIUM -> MEDIUM_SCORE;
-                    case HARD -> HARD_SCORE;
-                    default -> 0;
-                })
+            case EASY ->
+                EASY_SCORE;
+            case MEDIUM ->
+                MEDIUM_SCORE;
+            case HARD ->
+                HARD_SCORE;
+            default ->
+                0;
+        })
                 .average()
                 .orElse(0); // Default to 0 if no questions exist
-    
+
         // Determine difficulty based on average score
         if (averageDifficulty >= 2.5) {
             return Difficulty.HARD;
@@ -229,5 +230,4 @@ public class QuizService {
         }
     }
 
-    
 }

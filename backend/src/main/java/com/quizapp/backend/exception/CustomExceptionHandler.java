@@ -1,76 +1,63 @@
 package com.quizapp.backend.exception;
 
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @ControllerAdvice
-public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
-    
+public class CustomExceptionHandler {
+
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorDetails> handleResourceNotFoundException(ResourceNotFoundException ex, 
-                                                                      WebRequest request) {
-        ErrorDetails errorDetails = new ErrorDetails(
-                LocalDateTime.now(),
-                ex.getMessage(),
-                request.getDescription(false),
-                "RESOURCE_NOT_FOUND");
-        
-        return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "details", request.getDescription(false),
+                "errorCode", "NOT_FOUND"
+        ));
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorDetails> handleBadRequestException(BadRequestException ex, 
-                                                                 WebRequest request) {
-        ErrorDetails errorDetails = new ErrorDetails(
-                LocalDateTime.now(),
-                ex.getMessage(),
-                request.getDescription(false),
-                "BAD_REQUEST");
-        
-        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorDetails> handleGlobalException(Exception ex, 
-                                                            WebRequest request) {
-        ErrorDetails errorDetails = new ErrorDetails(
-                LocalDateTime.now(),
-                ex.getMessage(),
-                request.getDescription(false),
-                "INTERNAL_SERVER_ERROR");
-        
-        return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<?> handleBadRequestException(BadRequestException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "details", request.getDescription(false),
+                "errorCode", "BAD_REQUEST"
+        ));
     }
 
     @ExceptionHandler(InvalidQuizAttemptException.class)
-        public ResponseEntity<ErrorDetails> handleInvalidQuizAttemptException(InvalidQuizAttemptException ex, WebRequest request) {
-        ErrorDetails errorDetails = new ErrorDetails(
-                LocalDateTime.now(),
-                ex.getMessage(),
-                request.getDescription(false),
-                "INVALID_QUIZ_ATTEMPT"
-        );
-        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<?> handleInvalidQuizAttemptException(InvalidQuizAttemptException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "details", request.getDescription(false),
+                "errorCode", "INVALID_QUIZ_ATTEMPT"
+        ));
+    }
 
-        @ExceptionHandler(TooManyRequestsException.class)
-        public ResponseEntity<ErrorDetails> handleTooManyRequestsException(
-                TooManyRequestsException ex, 
-                WebRequest request
-        ) {
-            ErrorDetails errorDetails = new ErrorDetails(
-                LocalDateTime.now(),
-                ex.getMessage(),
-                request.getDescription(false),
-                "TOO_MANY_REQUESTS"
-            );
-            return new ResponseEntity<>(errorDetails, HttpStatus.TOO_MANY_REQUESTS);
-        }
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<?> handleTooManyRequestsException(TooManyRequestsException ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of(
+                "timestamp", LocalDateTime.now(),
+                "message", ex.getMessage(),
+                "details", request.getDescription(false),
+                "errorCode", "TOO_MANY_REQUESTS"
+        ));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "timestamp", LocalDateTime.now(),
+                "message", "An unexpected error occurred",
+                "details", request.getDescription(false),
+                "errorCode", "INTERNAL_SERVER_ERROR"
+        ));
+    }
 }
