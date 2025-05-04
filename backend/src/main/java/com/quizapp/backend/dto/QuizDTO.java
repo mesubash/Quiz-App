@@ -21,6 +21,7 @@ public class QuizDTO {
     private String description;
     private Integer timeLimitMinutes;
     private Boolean isPublished;
+    private String category;
     private Long createdById;
     private Difficulty difficulty;
     private List<QuestionDTO> questions; 

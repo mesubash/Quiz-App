@@ -327,6 +327,7 @@ export const adminService = {
 export const quizService = {
   getAllQuizzes: async () => {
     const response = await api.get("/quizzes");
+    console.log("Quizzes:", response.data);
     return response.data;
   },
 
@@ -421,6 +422,10 @@ export const quizService = {
   },
   getQuizAttempt: async (attemptId: string | number) => {
     const response = await api.get(`/attempts/user/${attemptId}`);
+    return response.data;
+  },
+  getAllCategories: async () => {
+    const response = await api.get("/quizzes/categories");
     return response.data;
   },
 };

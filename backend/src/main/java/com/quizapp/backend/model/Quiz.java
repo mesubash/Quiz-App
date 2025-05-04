@@ -1,7 +1,10 @@
 package com.quizapp.backend.model;
 
+import java.io.StringBufferInputStream;
+
 import jakarta.persistence.*;
 import lombok.*;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -17,13 +20,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Quiz {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
     private String title;
-    
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -38,6 +42,9 @@ public class Quiz {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;
+
+    @Column(nullable = false)
+    private String category;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

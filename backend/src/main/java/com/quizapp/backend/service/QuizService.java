@@ -44,7 +44,8 @@ public class QuizService {
         quiz.setTitle(quizDTO.getTitle());
         quiz.setDescription(quizDTO.getDescription());
         quiz.setTimeLimitMinutes(quizDTO.getTimeLimitMinutes());
-        quiz.setPublished(false); // Default to unpublished
+        quiz.setPublished(false);
+        quiz.setCategory(quizDTO.getCategory());
 
         // Map questions from DTO to entity
         List<Question> questions = quizDTO.getQuestions().stream()
@@ -153,6 +154,14 @@ public class QuizService {
         quizRepository.delete(quiz);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getAllCategories() {
+        return quizRepository.findAll().stream()
+                .map(Quiz::getCategory)
+                .distinct() // Ensure unique categories
+                .collect(Collectors.toList());
+    }
+
     private QuizDTO mapToDTO(Quiz quiz) {
         return QuizDTO.builder()
                 .id(quiz.getId())
@@ -162,6 +171,7 @@ public class QuizService {
                 .isPublished(quiz.isPublished())
                 .createdById(quiz.getCreatedBy() != null ? quiz.getCreatedBy().getId() : null)
                 .difficulty(quiz.getDifficulty()) // Include difficulty
+                .category(quiz.getCategory()) // Map category ID
                 .questions(quiz.getQuestions() != null ? quiz.getQuestions().stream()
                         .map(this::mapToQuestionDTO)
                         .collect(Collectors.toList()) : null) // Map questions
