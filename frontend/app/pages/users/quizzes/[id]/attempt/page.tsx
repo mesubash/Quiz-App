@@ -1,49 +1,50 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { quizService } from "@/app/services/api"
-import { ArrowLeft, ArrowRight, Clock, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { quizService } from "@/app/services/api";
+import { ArrowLeft, ArrowRight, Clock, AlertCircle } from "lucide-react";
 
 interface Question {
-  id: number
-  text: string
-  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE'
+  id: number;
+  text: string;
+  questionType: "MULTIPLE_CHOICE" | "TRUE_FALSE";
+  correctOptionIds: number[]; // Added correctOptionIds
   options: {
-    id: number
-    text: string
-  }[]
+    id: number;
+    text: string;
+  }[];
 }
 
 interface Quiz {
-  id: number
-  title: string
-  description: string
-  timeLimitMinutes: number
-  questions: Question[]
+  id: number;
+  title: string;
+  description: string;
+  timeLimitMinutes: number;
+  questions: Question[];
 }
 
 interface QuizAttempt {
-  id: number
-  quizId: number
-  userId: number
-  startedAt: string
-  completedAt: string | null
-  score: number
-  timeTakenSeconds: number | null
-  status: string
+  id: number;
+  quizId: number;
+  userId: number;
+  startedAt: string;
+  completedAt: string | null;
+  score: number;
+  timeTakenSeconds: number | null;
+  status: string;
 }
 
 export default function QuizAttemptPage() {
-  const router = useRouter()
-  const params = useParams()
-  const [attempt, setAttempt] = useState<QuizAttempt | null>(null)
-  const [quiz, setQuiz] = useState<Quiz | null>(null)
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, number[]>>({})
-  const [timeLeft, setTimeLeft] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const params = useParams();
+  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, number[]>>({});
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Unified start/resume logic
   useEffect(() => {
@@ -67,13 +68,13 @@ export default function QuizAttemptPage() {
             throw err;
           }
         }
-  
+
         console.log("API Response:", response);
-  
+
         if (!response || !response.attempt || !response.quiz) {
           throw new Error("Invalid response from server");
         }
-  
+
         setAttempt(response.attempt);
         setQuiz(response.quiz);
         setTimeLeft(response.quiz.timeLimitMinutes * 60);
@@ -104,32 +105,42 @@ export default function QuizAttemptPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
-  const handleAnswer = (questionId: number, optionId: number, multiple: boolean) => {
+  const handleAnswer = (questionId: number, optionId: number, multiple: boolean, maxSelections: number) => {
     setAnswers((prev) => {
+      const current = prev[questionId] || [];
       if (multiple) {
-        const current = prev[questionId] || []
-        return {
-          ...prev,
-          [questionId]: current.includes(optionId)
-            ? current.filter(id => id !== optionId)
-            : [...current, optionId]
+        if (current.includes(optionId)) {
+          // Deselect the option
+          return {
+            ...prev,
+            [questionId]: current.filter((id) => id !== optionId),
+          };
+        } else if (current.length < maxSelections) {
+          // Select the option if within the limit
+          return {
+            ...prev,
+            [questionId]: [...current, optionId],
+          };
         }
+        // Do nothing if the limit is reached
+        return prev;
       }
-      return { ...prev, [questionId]: [optionId] }
-    })
-  }
+      // Single selection
+      return { ...prev, [questionId]: [optionId] };
+    });
+  };
 
   const handleNext = () => {
     if (quiz && currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1)
+      setCurrentQuestion((prev) => prev + 1);
     }
-  }
+  };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1)
+      setCurrentQuestion((prev) => prev - 1);
     }
-  }
+  };
 
   const handleSubmit = async () => {
     if (!attempt) return;
@@ -160,7 +171,7 @@ export default function QuizAttemptPage() {
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading quiz...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !attempt || !quiz) {
@@ -177,10 +188,11 @@ export default function QuizAttemptPage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  const question = quiz.questions[currentQuestion]
+  const question = quiz.questions[currentQuestion];
+  const maxSelections = question.correctOptionIds.length; // Restrict based on correctOptionIds length
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -195,7 +207,7 @@ export default function QuizAttemptPage() {
               <Clock className="h-5 w-5 mr-2" />
               <span>
                 {Math.floor(timeLeft! / 60)}:
-                {String(timeLeft! % 60).padStart(2, '0')}
+                {String(timeLeft! % 60).padStart(2, "0")}
               </span>
             </div>
           </div>
@@ -207,7 +219,7 @@ export default function QuizAttemptPage() {
               <div
                 className="h-full bg-purple-600 transition-all duration-300"
                 style={{
-                  width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%`
+                  width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%`,
                 }}
               />
             </div>
@@ -224,21 +236,31 @@ export default function QuizAttemptPage() {
             {question.options.map((option) => (
               <button
                 key={option.id}
-                onClick={() => handleAnswer(
-                  question.id,
-                  option.id,
-                  question.questionType === 'MULTIPLE_CHOICE'
-                )}
+                onClick={() =>
+                  handleAnswer(
+                    question.id,
+                    option.id,
+                    question.questionType === "MULTIPLE_CHOICE",
+                    maxSelections
+                  )
+                }
                 className={`w-full p-4 text-left rounded-lg border-2 transition-all duration-200 
                   ${answers[question.id]?.includes(option.id)
-                    ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+                    ? "border-purple-600 bg-purple-50 dark:bg-purple-900/30"
+                    : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700"
                   }`}
+                disabled={
+                  !answers[question.id]?.includes(option.id) &&
+                  answers[question.id]?.length >= maxSelections
+                } // Disable if max selections reached
               >
                 <span className="text-gray-900 dark:text-white">{option.text}</span>
               </button>
             ))}
           </div>
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            You can select up to {maxSelections} option{maxSelections > 1 ? "s" : ""}.
+          </p>
         </div>
 
         {/* Navigation */}
@@ -248,8 +270,8 @@ export default function QuizAttemptPage() {
             disabled={currentQuestion === 0}
             className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200
               ${currentQuestion === 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
               }`}
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -275,5 +297,5 @@ export default function QuizAttemptPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

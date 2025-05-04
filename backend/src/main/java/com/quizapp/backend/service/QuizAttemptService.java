@@ -335,6 +335,10 @@ public class QuizAttemptService {
                 .text(question.getText())
                 .questionType(question.getQuestionType())
                 .options(question.getOptions().stream().map(this::mapToOptionDTO).toList())
+                .correctOptionIds(question.getOptions().stream()
+                        .filter(Option::isCorrect)
+                        .map(Option::getId)
+                        .collect(Collectors.toList()))
                 .build();
     }
 

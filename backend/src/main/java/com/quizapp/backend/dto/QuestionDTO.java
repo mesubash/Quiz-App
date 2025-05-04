@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 @AllArgsConstructor
 @NoArgsConstructor
 public class QuestionDTO {
+
     private Long id;
 
     @NotBlank(message = "Question text cannot be blank")
@@ -36,5 +37,6 @@ public class QuestionDTO {
     private Long quizId;
 
     private List<OptionDTO> options;
-    
+    private List<Long> correctOptionIds;
+
 }
