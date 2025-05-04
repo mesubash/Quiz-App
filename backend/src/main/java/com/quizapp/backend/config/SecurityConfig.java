@@ -1,7 +1,5 @@
 package com.quizapp.backend.config;
 
-
-
 import com.quizapp.backend.security.JwtAuthenticationEntryPoint;
 import com.quizapp.backend.security.JwtTokenProvider;
 import com.quizapp.backend.service.UserDetailService;
@@ -35,9 +33,9 @@ public class SecurityConfig {
     private final StringRedisTemplate redisTemplate;
     private final UserDetailService userDetailService;
 
-    public SecurityConfig(JwtAuthenticationEntryPoint unauthorizedHandler, 
-                         JwtTokenProvider tokenProvider,
-                         StringRedisTemplate redisTemplate, UserDetailService userDetailService) {
+    public SecurityConfig(JwtAuthenticationEntryPoint unauthorizedHandler,
+            JwtTokenProvider tokenProvider,
+            StringRedisTemplate redisTemplate, UserDetailService userDetailService) {
         this.userDetailService = userDetailService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.tokenProvider = tokenProvider;
@@ -52,10 +50,10 @@ public class SecurityConfig {
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/api/auth/login","/api/auth/register","/api/auth/token/refresh").permitAll()
-                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                .anyRequest().authenticated()
+                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/token/refresh").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
@@ -83,17 +81,17 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
-            "Authorization", 
-            "Content-Type", 
-            "X-Skip-Refresh"
+                "Authorization",
+                "Content-Type",
+                "X-Skip-Refresh"
         ));
         configuration.setExposedHeaders(Arrays.asList(
-            "Authorization", 
-            "Set-Cookie"
+                "Authorization",
+                "Set-Cookie"
         ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-    
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

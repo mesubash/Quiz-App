@@ -18,11 +18,12 @@ public class QuizAttemptController {
     private final QuizAttemptService quizAttemptService;
 
     @PostMapping("/start")
-    public ResponseEntity<QuizAttemptDTO> startQuizAttempt(@RequestBody Map<String, Long> requestBody) {
+    public ResponseEntity<?> startQuizAttempt(@RequestBody Map<String, Long> requestBody) {
         Long quizId = requestBody.get("quizId");
         if (quizId == null) {
             throw new IllegalArgumentException("Quiz ID is required");
         }
+
         QuizAttemptDTO attempt = quizAttemptService.startAttempt(quizId);
         return ResponseEntity.ok(attempt);
     }
@@ -32,6 +33,36 @@ public class QuizAttemptController {
             @PathVariable Long attemptId,
             @RequestBody SubmissionDTO submission) {
         return ResponseEntity.ok(quizAttemptService.submitAttempt(attemptId, submission));
+    }
+
+    @PostMapping("/end")
+    public ResponseEntity<?> endActiveAttempt(@RequestBody Map<String, Long> requestBody) {
+        Long quizId = requestBody.get("quizId");
+        if (quizId == null) {
+            throw new IllegalArgumentException("Quiz ID is required");
+        }
+
+        boolean ended = quizAttemptService.endActiveAttempt(quizId);
+        if (ended) {
+            return ResponseEntity.ok(Map.of(
+                    "message", "The active attempt for the quiz has been successfully ended."
+            ));
+        } else {
+            return ResponseEntity.status(404).body(Map.of(
+                    "message", "No active attempt found for the specified quiz."
+            ));
+        }
+    }
+
+    @PostMapping("/end-and-start")
+    public ResponseEntity<QuizAttemptDTO> endAndStartNewAttempt(@RequestBody Map<String, Long> requestBody) {
+        Long quizId = requestBody.get("quizId");
+        if (quizId == null) {
+            throw new IllegalArgumentException("Quiz ID is required");
+        }
+
+        QuizAttemptDTO newAttempt = quizAttemptService.endActiveAttemptAndStartNew(quizId);
+        return ResponseEntity.ok(newAttempt);
     }
 
     @GetMapping("/user")

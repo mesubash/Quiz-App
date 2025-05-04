@@ -30,24 +30,90 @@ public class QuizAttemptService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
+    
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
-
+    
+        // Check for active attempts
         List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
-
         if (!activeAttempts.isEmpty()) {
-            throw new BadRequestException("You already have an active attempt for this quiz.");
+            // Return the existing active attempt
+            return mapToDTO(activeAttempts.get(0));
         }
-
+    
+        // Start a new attempt if no active attempt exists
         QuizAttempt attempt = QuizAttempt.builder()
                 .user(user)
                 .quiz(quiz)
                 .startedAt(LocalDateTime.now())
                 .status(AttemptStatus.IN_PROGRESS)
                 .build();
-
+    
         QuizAttempt savedAttempt = attemptRepository.save(attempt);
+        return mapToDTO(savedAttempt);
+    }
+    @Transactional(readOnly = true)
+    public QuizAttemptDTO getActiveAttempt(Long quizId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Check for active attempts
+        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
+        if (!activeAttempts.isEmpty()) {
+            return mapToDTO(activeAttempts.get(0)); // Return the first active attempt
+        }
+        return null; // No active attempt found
+    }
+    @Transactional
+    public boolean endActiveAttempt(Long quizId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    
+        // Find active attempts for the user and quiz
+        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
+        if (activeAttempts.isEmpty()) {
+            return false; // No active attempt found
+        }
+    
+        // End the active attempt
+        QuizAttempt activeAttempt = activeAttempts.get(0);
+        activeAttempt.setStatus(AttemptStatus.ABANDONED);
+        activeAttempt.setCompletedAt(LocalDateTime.now());
+        attemptRepository.save(activeAttempt);
+    
+        return true; // Successfully ended the active attempt
+    }
+
+    @Transactional
+    public QuizAttemptDTO endActiveAttemptAndStartNew(Long quizId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+    
+        // Find active attempts for the user and quiz
+        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
+        if (!activeAttempts.isEmpty()) {
+            // End the active attempt
+            QuizAttempt activeAttempt = activeAttempts.get(0);
+            activeAttempt.setStatus(AttemptStatus.ABANDONED);
+            activeAttempt.setCompletedAt(LocalDateTime.now());
+            attemptRepository.save(activeAttempt);
+        }
+    
+        // Start a new attempt
+        QuizAttempt newAttempt = QuizAttempt.builder()
+                .user(user)
+                .quiz(quiz)
+                .startedAt(LocalDateTime.now())
+                .status(AttemptStatus.IN_PROGRESS)
+                .build();
+    
+        QuizAttempt savedAttempt = attemptRepository.save(newAttempt);
         return mapToDTO(savedAttempt);
     }
 
