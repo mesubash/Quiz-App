@@ -7,7 +7,27 @@ export function middleware(request: NextRequest) {
   const role = cookies.get("role")?.value;
   const token = request.cookies.get("accessToken")?.value;
 
-  // Define route mappings - keep these URLs clean in the address bar
+  // Handle dynamic quiz attempt rewrites
+  const quizAttemptMatch = pathname.match(/^\/quizzes\/([^\/]+)\/attempt\/?$/);
+  if (quizAttemptMatch) {
+    const quizId = quizAttemptMatch[1];
+    return NextResponse.rewrite(
+      new URL(`/pages/users/quizzes/${quizId}/attempt`, request.url)
+    );
+  }
+
+  // Handle dynamic quiz result rewrites
+  const quizResultMatch = pathname.match(
+    /^\/quizzes\/([^\/]+)\/result\/([^\/]+)\/?$/
+  );
+  if (quizResultMatch) {
+    const quizId = quizResultMatch[1];
+    const attemptId = quizResultMatch[2];
+    return NextResponse.rewrite(
+      new URL(`/pages/users/quizzes/${quizId}/result/${attemptId}`, request.url)
+    );
+  }
+
   const routeRewrites: Record<string, string> = {
     // Auth routes
     "/login": "/auth/login",
@@ -27,8 +47,9 @@ export function middleware(request: NextRequest) {
 
     // User routes - directly under /pages/users
     "/dashboard": "/pages/users/dashboard",
-    "/quizzes": "/pages/users/quizzes",
     "/my-quizzes": "/pages/users/my-quizzes",
+    "/quizzes": "/pages/users/quizzes",
+
     "/profile": "/pages/users/profile",
     "/settings": "/pages/users/settings",
     "/leaderboard": "/pages/users/leaderboard",
@@ -118,6 +139,28 @@ export function middleware(request: NextRequest) {
         new URL(reverseRoutes[pathname], request.url)
       );
     }
+  }
+
+  // 4. Handle specific admin quiz routes
+  if (pathname.startsWith("/admin/quizzes/create-quiz")) {
+    return NextResponse.rewrite(
+      new URL("/pages/admin/quizzes/create-quiz", request.url)
+    );
+  }
+
+  if (pathname.startsWith("/admin/quizzes/edit-quiz")) {
+    return NextResponse.rewrite(
+      new URL("/pages/admin/quizzes/edit-quiz", request.url)
+    );
+  }
+  const adminQuizPreviewMatch = pathname.match(
+    /^\/admin\/quizzes\/preview\/([^\/]+)\/?$/
+  );
+  if (adminQuizPreviewMatch) {
+    const quizId = adminQuizPreviewMatch[1];
+    return NextResponse.rewrite(
+      new URL(`/pages/admin/quizzes/preview/${quizId}`, request.url)
+    );
   }
 
   return NextResponse.next();

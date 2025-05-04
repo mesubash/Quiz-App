@@ -118,9 +118,9 @@ export default function Dashboard() {
 
           {quizHistory.length > 0 ? (
             <div className="space-y-4">
-              {quizHistory.map((item) => (
+              {quizHistory.map((item, index) => (
                 <div
-                  key={item.id}
+                  key={item.id || index}
                   className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div>
@@ -203,7 +203,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <Link
-                    href={`/quiz/${quiz.id}`}
+                    href={`/quizzes/${quiz.id}/attempt`}
                     className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm"
                   >
                     Start Quiz

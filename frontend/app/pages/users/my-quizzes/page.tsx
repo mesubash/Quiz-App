@@ -179,8 +179,8 @@ export default function MyQuizzesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {displayedAttempts.length > 0 ? (
           <>
-            {displayedAttempts.map((attempt) => (
-              <div key={attempt.id} className="card overflow-hidden">
+            {displayedAttempts.map((attempt, index) => (
+              <div key={`${attempt.id}-${index}`} className="card overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-3">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">

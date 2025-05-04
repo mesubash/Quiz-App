@@ -373,23 +373,54 @@ export const quizService = {
     await api.delete(`/quizzes/${id}`);
   },
 
-  startQuizAttempt: async (quizId: string) => {
-    const response = await api.post(`/attempts/start`, { quizId });
-    return response.data;
+  startQuizAttempt: async (quizId: string | number) => {
+    try {
+      const response = await api.post("/attempts/start", {
+        quizId: Number(quizId),
+      });
+      return response.data;
+    } catch (error: any) {
+      // Pass error up for resume logic
+      throw error;
+    }
+  },
+  resumeQuizAttempt: async (quizId: string | number) => {
+    try {
+      const response = await api.get(`/attempts/resume/${quizId}`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new Error("No active attempt found for the specified quiz.");
+        }
+      }
+      throw error;
+    }
   },
 
   submitQuizAttempt: async (
-    attemptId: string,
+    attemptId: number,
     answers: QuizAttempt["answers"]
   ) => {
+    // Correct endpoint:
     const response = await api.post(`/attempts/${attemptId}/submit`, {
       answers,
     });
     return response.data;
   },
+  endQuizAttempt: async (attemptId: string) => {
+    // Correct endpoint:
+    const response = await api.post(`/attempts/end`);
+    return response.data;
+  },
 
-  getQuizHistory: async (quizId: string) => {
-    const response = await api.get(`/quizzes/${quizId}/history`);
+  getQuizHistory: async () => {
+    // Correct endpoint for all user attempts:
+    const response = await api.get(`/attempts/user`);
+    return response.data;
+  },
+  getQuizAttempt: async (attemptId: string | number) => {
+    const response = await api.get(`/attempts/user/${attemptId}`);
     return response.data;
   },
 };
@@ -414,11 +445,6 @@ export const userService = {
       console.error("Failed to fetch quiz history:", error);
       throw error;
     }
-  },
-
-  getQuizAttempt: async (attemptId: string) => {
-    const response = await api.get(`/user/quiz-attempts/${attemptId}`);
-    return response.data;
   },
 
   getLeaderboard: async () => {

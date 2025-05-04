@@ -7,6 +7,8 @@ import { quizService } from "@/app/services/api"
 import { Search, Filter, Clock, BookOpen, Tag, ChevronDown } from "lucide-react"
 import Dashboard from "../dashboard/page"
 import DashboardLayout from "../dashboard/layout"
+import { useParams } from "next/navigation"
+
 
 type Quiz = {
   id: string;
@@ -24,6 +26,8 @@ export default function QuizzesPage() {
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [visibleQuizzes, setVisibleQuizzes] = useState(6)
+  const params = useParams();
+  const quizId = params.id as string;
 
    // Update how we store and handle categories
    const [categories, setCategories] = useState<Array<{id: string, name: string}>>([])
@@ -162,7 +166,7 @@ export default function QuizzesPage() {
                 </div>
                 <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700">
                   <Link
-                    href={`/quiz/${quiz.id}`}
+                    href={`/quizzes/${quiz.id}/attempt`}
                     className="btn-primary w-full flex justify-center items-center hover:bg-blue-700 transition-colors duration-200"
                   >
                     Start Quiz
