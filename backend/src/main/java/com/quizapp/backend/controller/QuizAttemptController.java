@@ -100,4 +100,23 @@ public class QuizAttemptController {
         return ResponseEntity.ok(attemptDetails);
     }
 
+    //delete attempts
+    @DeleteMapping("/user/{attemptId}")
+    public ResponseEntity<?> deleteQuizAttempt(@PathVariable Long attemptId) {
+        quizAttemptService.deleteQuizAttempt(attemptId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/user")
+    public ResponseEntity<?> deleteAllQuizAttempts() {
+        quizAttemptService.deleteAllQuizAttempts();
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/user/bulk")
+    public ResponseEntity<?> deleteMultipleQuizAttempts(@RequestBody List<Long> attemptIds) {
+        quizAttemptService.deleteMultipleQuizAttempts(attemptIds);
+        return ResponseEntity.noContent().build();
+    }
+
 }

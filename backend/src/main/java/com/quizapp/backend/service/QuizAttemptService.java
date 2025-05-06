@@ -260,7 +260,49 @@ public class QuizAttemptService {
         return mapToDetailedDTO(attempt);
     }
 
+    //delete attempts
     
+    @Transactional
+    public void deleteQuizAttempt(Long attemptId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    
+        QuizAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
+    
+        // Ensure the attempt belongs to the logged-in user
+        if (!attempt.getUser().getId().equals(user.getId())) {
+            throw new BadRequestException("You are not authorized to delete this attempt.");
+        }
+    
+        attemptRepository.delete(attempt);
+    }
+    @Transactional
+    public void deleteAllQuizAttempts() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    
+        List<QuizAttempt> attempts = attemptRepository.findByUserId(user.getId());
+        attemptRepository.deleteAll(attempts);
+    }
+    @Transactional
+    public void deleteMultipleQuizAttempts(List<Long> attemptIds) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    
+        List<QuizAttempt> attempts = attemptRepository.findAllById(attemptIds).stream()
+                .filter(attempt -> attempt.getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList());
+    
+        if (attempts.isEmpty()) {
+            throw new BadRequestException("No valid attempts found to delete.");
+        }
+    
+        attemptRepository.deleteAll(attempts);
+    }
 
     private QuizAttemptDTO mapToDTO(QuizAttempt attempt) {
         return QuizAttemptDTO.builder()

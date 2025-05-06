@@ -474,6 +474,18 @@ export const userService = {
     const response = await api.get(`/leaderboard/quiz/${quizId}`);
     return response.data;
   },
+
+  deleteQuizAttempt: async (attemptId: string) => {
+    await api.delete(`/attempts/user/${Number(attemptId)}`);
+  },
+
+  deleteMultipleQuizAttempts: async (attemptIds: string[]) => {
+    await api.delete(`/attempts/user/bulk`, { data: attemptIds.map(Number) });
+  },
+
+  deleteAllQuizAttempts: async () => {
+    await api.delete(`/attempts/user`);
+  },
 };
 
 export const leaderboardService = {

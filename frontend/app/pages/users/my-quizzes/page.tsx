@@ -10,7 +10,7 @@ import {
   Target,
   Award,
   ChevronDown,
-  BarChart,
+  Trash2,
 } from "lucide-react";
 import DashboardLayout from "../dashboard/layout";
 
@@ -34,43 +34,38 @@ export default function MyQuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [visibleAttempts, setVisibleAttempts] = useState(6);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
-
-  
+  const [selectedAttempts, setSelectedAttempts] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchQuizAttempts = async () => {
       try {
         const data = await userService.getQuizHistory();
-        console.log("Fetched quiz attempts:", data);
-  
-        // Transform the data to match the frontend's expected structure
         const transformedData = data.map((attempt: any) => ({
-          id: attempt.attemptId, // Use attemptId as the unique ID
-          quizId: attempt.quizId, // Map quizId
-          quizTitle: attempt.quizTitle || "Untitled Quiz", // Use quizTitle
-          score: attempt.score || 0, // Use score
-          maxPossibleScore: attempt.maxPossibleScore || 0, // Use maxPossibleScore
-          percentage: attempt.percentage || 0, // Use percentage
+          id: attempt.attemptId,
+          quizId: attempt.quizId,
+          quizTitle: attempt.quizTitle || "Untitled Quiz",
+          score: attempt.score || 0,
+          maxPossibleScore: attempt.maxPossibleScore || 0,
+          percentage: attempt.percentage || 0,
           completedAt: attempt.completedAt
             ? new Date(attempt.completedAt).toISOString()
-            : null, // Format completedAt
-          timeSpent: attempt.timeTakenSeconds || 0, // Use timeTakenSeconds
-          totalQuestions: attempt.questionResults?.length || 0, // Count total questions
-          correctAnswers: attempt.questionResults?.filter((q: any) => q.correct).length || 0, // Count correct answers
-          category: "Uncategorized", // Placeholder for category (update if available)
+            : null,
+          timeSpent: attempt.timeTakenSeconds || 0,
+          totalQuestions: attempt.questionResults?.length || 0,
+          correctAnswers: attempt.questionResults?.filter((q: any) => q.correct).length || 0,
+          category: "Uncategorized",
         }));
-  
+
         setAttempts(transformedData);
         setFilteredAttempts(transformedData);
-  
-        // Extract unique categories dynamically
+
         const uniqueCategories = Array.from(
-          new Set(transformedData.map((attempt: { category: any; }) => attempt.category || "Uncategorized"))
+          new Set(transformedData.map((attempt: { category: any }) => attempt.category || "Uncategorized"))
         ).map((category) => ({
           id: (category as string).toLowerCase().replace(/\s+/g, "-"),
           name: category as string,
         }));
-  
+
         setCategories([{ id: "all", name: "All Categories" }, ...uniqueCategories]);
       } catch (error) {
         console.error("Error fetching quiz attempts:", error);
@@ -78,15 +73,14 @@ export default function MyQuizzesPage() {
         setLoading(false);
       }
     };
-  
+
     fetchQuizAttempts();
   }, []);
 
   useEffect(() => {
     const filtered = attempts.filter((attempt) => {
       const matchesCategory =
-        selectedCategory === "All Categories" ||
-        attempt.category === selectedCategory;
+        selectedCategory === "All Categories" || attempt.category === selectedCategory;
       const matchesSearch = attempt.quizTitle
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -94,148 +88,166 @@ export default function MyQuizzesPage() {
     });
 
     setFilteredAttempts(filtered);
-    setVisibleAttempts(6); // Reset visible attempts when filters change
+    setVisibleAttempts(6);
   }, [selectedCategory, searchTerm, attempts]);
 
   const loadMoreAttempts = () => {
     setVisibleAttempts((prev) => prev + 6);
   };
 
+  const toggleSelection = (id: string) => {
+    setSelectedAttempts((prev) =>
+      prev.includes(id) ? prev.filter((attemptId) => attemptId !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedAttempts.length === filteredAttempts.length) {
+      setSelectedAttempts([]);
+    } else {
+      setSelectedAttempts(filteredAttempts.map((attempt) => attempt.id));
+    }
+  };
+
+  const deleteSingleAttempt = async (id: string) => {
+    try {
+      await userService.deleteQuizAttempt(id);
+      setAttempts((prev) => prev.filter((attempt) => attempt.id !== id));
+      setFilteredAttempts((prev) => prev.filter((attempt) => attempt.id !== id));
+      setSelectedAttempts((prev) => prev.filter((attemptId) => attemptId !== id));
+    } catch (error) {
+      console.error("Failed to delete quiz attempt:", error);
+    }
+  };
+
+  const deleteSelectedAttempts = async () => {
+    try {
+      await userService.deleteMultipleQuizAttempts(selectedAttempts);
+      setAttempts((prev) => prev.filter((attempt) => !selectedAttempts.includes(attempt.id)));
+      setFilteredAttempts((prev) => prev.filter((attempt) => !selectedAttempts.includes(attempt.id)));
+      setSelectedAttempts([]);
+    } catch (error) {
+      console.error("Failed to delete selected quiz attempts:", error);
+    }
+  };
+
+  const deleteAllAttempts = async () => {
+    try {
+      await userService.deleteAllQuizAttempts();
+      setAttempts([]);
+      setFilteredAttempts([]);
+      setSelectedAttempts([]);
+    } catch (error) {
+      console.error("Failed to delete all quiz attempts:", error);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Loading quiz history...
-          </p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[70vh] bg-gray-100 dark:bg-gray-900">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-purple-600 border-r-transparent"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading quiz history...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   const displayedAttempts = filteredAttempts.slice(0, visibleAttempts);
   const hasMoreAttempts = filteredAttempts.length > visibleAttempts;
 
-  const totalQuizzesTaken = attempts.length;
-  const averageScore =
-    attempts.length > 0
-      ? Math.round(
-          attempts.reduce((acc, curr) => acc + curr.score, 0) / attempts.length
-        )
-      : "N/A";
-  const bestScore =
-    attempts.length > 0 ? Math.max(...attempts.map((a) => a.score)) : "N/A";
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    })}`;
-  };
-
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">
             My Quiz History
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Track your progress and review past quiz attempts.
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Review your past quiz attempts and track your progress
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 mr-4">
-                <Target className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Quizzes Taken
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {totalQuizzesTaken}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 mr-4">
-                <Award className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Average Score
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {averageScore}%
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 mr-4">
-                <BarChart className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Best Score
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {bestScore}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Filters */}
-        <div className="card p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            {/* Search Input */}
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Search className="w-5 h-5 text-gray-400" />
+                <Search className="w-5 h-5 text-gray-400" aria-hidden="true" />
               </div>
               <input
                 type="text"
                 id="search"
-                className="input pl-10"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 placeholder="Search quizzes by title..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search quiz history"
               />
             </div>
 
-            <div className="w-full md:w-64">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Filter className="w-5 h-5 text-gray-400" />
-                </div>
-                <select
-                  id="category"
-                  className="input pl-10 appearance-none"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            {/* Category Filter */}
+            <div className="relative w-full md:w-64">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Filter className="w-5 h-5 text-gray-400" aria-hidden="true" />
               </div>
+              <select
+                id="category"
+                className="w-full pl-10 pr-8 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none transition-all"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                aria-label="Filter by category"
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={deleteSelectedAttempts}
+            className={`flex items-center px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 shadow-sm ${
+              selectedAttempts.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            }`}
+            disabled={selectedAttempts.length === 0}
+            aria-label="Delete selected quiz attempts"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Selected
+          </button>
+          <button
+            onClick={deleteAllAttempts}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 shadow-sm"
+            aria-label="Delete all quiz attempts"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete All
+          </button>
+          <div className="flex items-center ml-auto">
+            <input
+              type="checkbox"
+              id="select-all"
+              checked={selectedAttempts.length === filteredAttempts.length}
+              onChange={selectAll}
+              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600"
+              aria-label="Select all quiz attempts"
+            />
+            <label htmlFor="select-all" className="ml-2 text-gray-600 dark:text-gray-400">
+              Select All
+            </label>
           </div>
         </div>
 
@@ -244,12 +256,35 @@ export default function MyQuizzesPage() {
           {displayedAttempts.length > 0 ? (
             <>
               {displayedAttempts.map((attempt, index) => (
-                <div key={`${attempt.id}-${index}`} className="card overflow-hidden">
+                <div
+                  key={`${attempt.id}-${index}`}
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden transform transition-all hover:shadow-lg animate-fade-in relative"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Delete Icon */}
+                  <button
+                    onClick={() => deleteSingleAttempt(attempt.id)}
+                    className="absolute top-4 right-4 text-red-600 hover:text-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded-full p-1 transition-all duration-200"
+                    aria-label={`Delete quiz attempt: ${attempt.quizTitle}`}
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+
                   <div className="p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        {attempt.quizTitle}
-                      </h2>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`attempt-${attempt.id}`}
+                          checked={selectedAttempts.includes(attempt.id)}
+                          onChange={() => toggleSelection(attempt.id)}
+                          className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600"
+                          aria-label={`Select quiz attempt: ${attempt.quizTitle}`}
+                        />
+                        <h2 className="ml-3 text-xl font-semibold text-gray-900 dark:text-white line-clamp-2">
+                          {attempt.quizTitle}
+                        </h2>
+                      </div>
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
                           attempt.score >= 80
@@ -263,19 +298,42 @@ export default function MyQuizzesPage() {
                       </span>
                     </div>
 
-                    <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                        <div
+                          className={`h-2.5 rounded-full ${
+                            attempt.score >= 80
+                              ? "bg-green-600"
+                              : attempt.score >= 60
+                              ? "bg-yellow-600"
+                              : "bg-red-600"
+                          }`}
+                          style={{ width: `${attempt.score}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center justify-between">
-                        <span>Correct Answers:</span>
-                        <span>
-                          {attempt.correctAnswers}/{attempt.totalQuestions}
+                        <span className="flex items-center">
+                          <Target className="w-4 h-4 mr-1" />
+                          Correct Answers:
                         </span>
+                        <span>{attempt.correctAnswers}/{attempt.totalQuestions}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Time Spent:</span>
+                        <span className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          Time Spent:
+                        </span>
                         <span>{Math.round(attempt.timeSpent / 60)} minutes</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Completed:</span>
+                        <span className="flex items-center">
+                          <Award className="w-4 h-4 mr-1" />
+                          Completed:
+                        </span>
                         <span>
                           {new Date(attempt.completedAt).toLocaleDateString()}
                         </span>
@@ -286,7 +344,8 @@ export default function MyQuizzesPage() {
                   <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
                     <Link
                       href={`/pages/users/quizzes/${attempt.id}/history`}
-                      className="btn-secondary w-full flex justify-center items-center"
+                      className="block text-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm"
+                      aria-label={`View details for ${attempt.quizTitle}`}
                     >
                       View Details
                     </Link>
@@ -296,10 +355,11 @@ export default function MyQuizzesPage() {
 
               {/* Load More Button */}
               {hasMoreAttempts && (
-                <div className="col-span-full flex justify-center mt-4">
+                <div className="col-span-full flex justify-center mt-6">
                   <button
                     onClick={loadMoreAttempts}
-                    className="flex items-center px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-200 rounded-lg transition-colors duration-200"
+                    className="flex items-center px-6 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 dark:text-purple-200 rounded-lg transition-all duration-200 shadow-sm focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    aria-label="Load more quiz attempts"
                   >
                     <span>Load More</span>
                     <ChevronDown className="ml-2 h-4 w-4" />
@@ -308,13 +368,14 @@ export default function MyQuizzesPage() {
               )}
             </>
           ) : (
-            <div className="col-span-full text-center py-12 card">
-              <p className="text-gray-500 dark:text-gray-400">
+            <div className="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
                 No quiz attempts found
               </p>
               <Link
                 href="/quizzes"
-                className="mt-4 btn-primary inline-flex items-center"
+                className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm"
+                aria-label="Take your first quiz"
               >
                 Take Your First Quiz
               </Link>
@@ -322,6 +383,23 @@ export default function MyQuizzesPage() {
           )}
         </div>
       </div>
+
+      {/* Custom CSS for Animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+      `}</style>
     </DashboardLayout>
   );
 }
