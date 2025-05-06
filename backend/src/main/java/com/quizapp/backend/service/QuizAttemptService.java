@@ -260,6 +260,8 @@ public class QuizAttemptService {
         return mapToDetailedDTO(attempt);
     }
 
+    
+
     private QuizAttemptDTO mapToDTO(QuizAttempt attempt) {
         return QuizAttemptDTO.builder()
                 .id(attempt.getId())

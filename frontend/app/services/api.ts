@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type AxiosRequestConfig } from "axios";
 import { QuizData } from "@/app/types/quiz";
 import { LeaderboardEntry, LeaderboardStats } from "../types/leaderboard";
+import { get } from "http";
 
 // Types
 type User = {
@@ -448,6 +449,18 @@ export const userService = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch quiz history:", error);
+      throw error;
+    }
+  },
+  getQuizAttemptDetails: async (attemptId: string | number) => {
+    try {
+      const response = await api.get(
+        `/attempts/user/quiz-history/${Number(attemptId)}`
+      );
+      return response.data;
+      console.log("Quiz Attempt Details:", response.data);
+    } catch (error) {
+      console.error("Failed to fetch quiz attempt details:", error);
       throw error;
     }
   },

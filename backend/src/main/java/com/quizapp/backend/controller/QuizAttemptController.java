@@ -94,5 +94,10 @@ public class QuizAttemptController {
         }
         return ResponseEntity.ok(attempt);
     }
+    @GetMapping("/user/quiz-history/{attemptId}")
+    public ResponseEntity<DetailedQuizAttemptDTO> getQuizAttemptDetails(@PathVariable Long attemptId) {
+        DetailedQuizAttemptDTO attemptDetails = quizAttemptService.getUserAttemptById(attemptId);
+        return ResponseEntity.ok(attemptDetails);
+    }
 
 }

@@ -53,6 +53,8 @@ public class QuizController {
     public ResponseEntity<List<QuizResultDTO>> getQuizHistoryByQuizId(@PathVariable Long quizId) {
         return ResponseEntity.ok(quizService.getQuizHistoryByQuizId(quizId));
     }
+    
+
 
     @GetMapping("/categories")
     public List<String> getAllCategories() {
