@@ -375,7 +375,7 @@ export const quizService = {
     await api.delete(`/quizzes/${id}`);
   },
 
-  startQuizAttempt: async (quizId: string | number) => {
+  startOrResumeQuizAttempt: async (quizId: string | number) => {
     try {
       const response = await api.post("/attempts/start", {
         quizId: Number(quizId),
@@ -385,19 +385,7 @@ export const quizService = {
       // Pass error up for resume logic
       throw error;
     }
-  },
-  resumeQuizAttempt: async (quizId: string | number) => {
-    try {
-      const response = await api.get(`/attempts/resume/${quizId}`);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) {
-          throw new Error("No active attempt found for the specified quiz.");
-        }
-      }
-      throw error;
-    }
+  
   },
 
   submitQuizAttempt: async (

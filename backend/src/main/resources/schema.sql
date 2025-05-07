@@ -73,6 +73,32 @@ CREATE TABLE quiz_attempts (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
 );
+DELIMITER $$
+
+CREATE TRIGGER enforce_unique_active_attempt
+BEFORE INSERT ON quiz_attempts
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'IN_PROGRESS' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM quiz_attempts
+            WHERE user_id = NEW.user_id
+              AND quiz_id = NEW.quiz_id
+              AND status = 'IN_PROGRESS'
+        ) THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Only one active attempt (IN_PROGRESS) is allowed per user and quiz.';
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- if you want to remove the trigger later
+---ALTER TABLE quiz_attempts
+---ADD CONSTRAINT unique_user_quiz_status
+---UNIQUE (user_id, quiz_id, status);
 
 -- Table: user_answers
 CREATE TABLE user_answers (

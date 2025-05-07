@@ -23,24 +23,21 @@ public class QuizAttemptController {
     private final QuizAttemptService quizAttemptService;
 
     @PostMapping("/start")
-    public ResponseEntity<?> startQuizAttempt(@RequestBody Map<String, Long> requestBody) {
+    public synchronized ResponseEntity<?> startOrResumeQuizAttempt(@RequestBody Map<String, Long> requestBody) {
         Long quizId = requestBody.get("quizId");
         if (quizId == null) {
             throw new IllegalArgumentException("Quiz ID is required");
         }
 
-        Map<String, Object> response = quizAttemptService.startNewAttempt(quizId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/resume/{quizId}")
-    public ResponseEntity<?> resumeQuizAttempt(@PathVariable Long quizId) {
+        // Check if there is an active attempt for the quiz
         Map<String, Object> response = quizAttemptService.resumeAttempt(quizId);
-        if (response == null) {
-            return ResponseEntity.status(404).body(Map.of(
-                    "message", "No active attempt found for the specified quiz."
-            ));
+        if (response != null) {
+            // Resume the active attempt
+            return ResponseEntity.ok(response);
         }
+
+        // If no active attempt exists, start a new one
+        response = quizAttemptService.startNewAttempt(quizId);
         return ResponseEntity.ok(response);
     }
 
@@ -94,6 +91,7 @@ public class QuizAttemptController {
         }
         return ResponseEntity.ok(attempt);
     }
+
     @GetMapping("/user/quiz-history/{attemptId}")
     public ResponseEntity<DetailedQuizAttemptDTO> getQuizAttemptDetails(@PathVariable Long attemptId) {
         DetailedQuizAttemptDTO attemptDetails = quizAttemptService.getUserAttemptById(attemptId);

@@ -13,7 +13,6 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
 
     List<QuizAttempt> findByUserId(Long userId);
 
-    
     List<QuizAttempt> findByQuizId(Long quizId);
 
     @Query("SELECT a FROM QuizAttempt a WHERE a.user.username = :username")
@@ -39,4 +38,5 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
 
     @Query("SELECT a FROM QuizAttempt a WHERE a.user.id = :userId AND a.quiz.id = :quizId")
     List<QuizAttempt> findByUserIdAndQuizId(Long userId, Long quizId);
+
 }

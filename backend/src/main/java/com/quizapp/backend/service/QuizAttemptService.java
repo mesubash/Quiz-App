@@ -38,6 +38,12 @@ public class QuizAttemptService {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
+        // Check for existing active attempts
+        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
+        if (!activeAttempts.isEmpty()) {
+            throw new BadRequestException("An active attempt already exists for this quiz.");
+        }
+
         // Create a new attempt
         QuizAttempt attempt = QuizAttempt.builder()
                 .user(user)
@@ -92,27 +98,6 @@ public class QuizAttemptService {
     }
 
     @Transactional
-    public boolean endActiveAttempt(Long quizId) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        // Find active attempts for the user and quiz
-        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
-        if (activeAttempts.isEmpty()) {
-            return false; // No active attempt found
-        }
-
-        // End the active attempt
-        QuizAttempt activeAttempt = activeAttempts.get(0);
-        activeAttempt.setStatus(AttemptStatus.ABANDONED);
-        activeAttempt.setCompletedAt(LocalDateTime.now());
-        attemptRepository.save(activeAttempt);
-
-        return true; // Successfully ended the active attempt
-    }
-
-    @Transactional
     public QuizAttemptDTO endActiveAttemptAndStartNew(Long quizId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
@@ -152,20 +137,12 @@ public class QuizAttemptService {
             throw new BadRequestException("Only in-progress attempts can be submitted.");
         }
 
+        // Validate submission
         if (submission.getAnswers() == null || submission.getAnswers().isEmpty()) {
             throw new BadRequestException("Submission must contain answers.");
         }
 
-        Set<Long> quizQuestionIds = attempt.getQuiz().getQuestions().stream()
-                .map(Question::getId)
-                .collect(Collectors.toSet());
-
-        for (AnswerSubmissionDTO answer : submission.getAnswers()) {
-            if (!quizQuestionIds.contains(answer.getQuestionId())) {
-                throw new BadRequestException("Invalid question ID in submission: " + answer.getQuestionId());
-            }
-        }
-
+        // Process submission
         int score = 0;
         List<QuestionResultDTO> questionResults = new ArrayList<>();
         List<UserAnswer> userAnswers = new ArrayList<>();
@@ -212,6 +189,7 @@ public class QuizAttemptService {
         attempt.getUserAnswers().clear();
         attempt.getUserAnswers().addAll(userAnswers);
 
+        // Update attempt details
         long timeTaken = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
         attempt.setTimeTakenSeconds((int) timeTaken);
         attempt.setScore(score);
@@ -232,6 +210,29 @@ public class QuizAttemptService {
                 .completedAt(attempt.getCompletedAt())
                 .questionResults(questionResults)
                 .build();
+    }
+
+    @Transactional
+    public Boolean endActiveAttempt(Long quizId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+
+        // Find active attempts for the user and quiz
+        List<QuizAttempt> activeAttempts = attemptRepository.findActiveAttemptsByUserAndQuiz(user.getId(), quizId);
+        if (activeAttempts.isEmpty()) {
+            throw new BadRequestException("No active attempt exists for this quiz.");
+        }
+
+        // End the active attempt
+        QuizAttempt activeAttempt = activeAttempts.get(0);
+        activeAttempt.setStatus(AttemptStatus.ABANDONED);
+        activeAttempt.setCompletedAt(LocalDateTime.now());
+        attemptRepository.save(activeAttempt);
+        return true; // Successfully ended the active attempt
     }
 
     @Transactional(readOnly = true)
@@ -261,46 +262,47 @@ public class QuizAttemptService {
     }
 
     //delete attempts
-    
     @Transactional
     public void deleteQuizAttempt(Long attemptId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    
+
         QuizAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
-    
+
         // Ensure the attempt belongs to the logged-in user
         if (!attempt.getUser().getId().equals(user.getId())) {
             throw new BadRequestException("You are not authorized to delete this attempt.");
         }
-    
+
         attemptRepository.delete(attempt);
     }
+
     @Transactional
     public void deleteAllQuizAttempts() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    
+
         List<QuizAttempt> attempts = attemptRepository.findByUserId(user.getId());
         attemptRepository.deleteAll(attempts);
     }
+
     @Transactional
     public void deleteMultipleQuizAttempts(List<Long> attemptIds) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    
+
         List<QuizAttempt> attempts = attemptRepository.findAllById(attemptIds).stream()
                 .filter(attempt -> attempt.getUser().getId().equals(user.getId()))
                 .collect(Collectors.toList());
-    
+
         if (attempts.isEmpty()) {
             throw new BadRequestException("No valid attempts found to delete.");
         }
-    
+
         attemptRepository.deleteAll(attempts);
     }
 

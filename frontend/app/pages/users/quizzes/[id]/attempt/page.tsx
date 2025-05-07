@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { quizService } from "@/app/services/api";
 import { ArrowLeft, ArrowRight, Clock, AlertCircle } from "lucide-react";
+import { clear, time } from "console";
 
 interface Question {
   id: number;
@@ -51,30 +52,16 @@ export default function QuizAttemptPage() {
     const startOrResumeAttempt = async () => {
       setLoading(true);
       setError(null);
+  
       try {
-        let response;
-        try {
-          response = await quizService.startQuizAttempt(params.id as string);
-        } catch (err: any) {
-          if (
-            err.response &&
-            err.response.status === 400 &&
-            err.response.data &&
-            typeof err.response.data.message === "string" &&
-            err.response.data.message.includes("active attempt")
-          ) {
-            response = await quizService.resumeQuizAttempt(params.id as string);
-          } else {
-            throw err;
-          }
-        }
-
-        console.log("API Response:", response);
-
+        // Call the unified start/resume endpoint
+        const response = await quizService.startOrResumeQuizAttempt(params.id as string);
+        console.log("Started or resumed attempt:", response);
+  
         if (!response || !response.attempt || !response.quiz) {
-          throw new Error("Invalid response from server");
+          throw new Error("Invalid response from server.");
         }
-
+  
         setAttempt(response.attempt);
         setQuiz(response.quiz);
         setTimeLeft(response.quiz.timeLimitMinutes * 60);
@@ -85,10 +72,10 @@ export default function QuizAttemptPage() {
         setLoading(false);
       }
     };
+  
     startOrResumeAttempt();
   }, [params.id]);
 
-  // Timer countdown
   useEffect(() => {
     if (!timeLeft) return;
     const timer = setInterval(() => {
@@ -101,9 +88,11 @@ export default function QuizAttemptPage() {
         return prev ? prev - 1 : 0;
       });
     }, 1000);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  
+    return () => clearInterval(timer); // Clear timer on unmount
   }, [timeLeft]);
+
+  
 
   const handleAnswer = (questionId: number, optionId: number, multiple: boolean, maxSelections: number) => {
     setAnswers((prev) => {
@@ -142,8 +131,12 @@ export default function QuizAttemptPage() {
     }
   };
 
+  const [submitting, setSubmitting] = useState(false);
   const handleSubmit = async () => {
-    if (!attempt) return;
+    if (!attempt || submitting) return;
+    setSubmitting(true);
+    clearInterval(timeLeft!); // Stop the timer
+    setTimeLeft(null); // Clear the time left
     try {
       const result = await quizService.submitQuizAttempt(
         attempt.id,
@@ -160,6 +153,8 @@ export default function QuizAttemptPage() {
       } else {
         setError("Failed to submit quiz. Please try again.");
       }
+    }finally {
+      setSubmitting(false);
     }
   };
 
@@ -281,7 +276,12 @@ export default function QuizAttemptPage() {
           {currentQuestion === quiz.questions.length - 1 ? (
             <button
               onClick={handleSubmit}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200"
+              disabled={submitting}
+              className={`px-6 py-2 rounded-lg transition-all duration-200 ${
+                submitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-purple-600 text-white hover:bg-purple-700"
+              }`}
             >
               Submit Quiz
             </button>
