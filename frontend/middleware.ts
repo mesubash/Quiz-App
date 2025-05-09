@@ -7,6 +7,20 @@ export function middleware(request: NextRequest) {
   const role = cookies.get("role")?.value;
   const token = request.cookies.get("accessToken")?.value;
 
+  // Redirect logic for the base URL
+  if (pathname === "/") {
+    if (!token) {
+      // If no token, redirect to the guest page
+      return NextResponse.rewrite(new URL("/guest", request.url));
+    } else if (role === "admin") {
+      // If the user is an admin, redirect to the admin dashboard
+      return NextResponse.redirect(new URL("/admin", request.url));
+    } else {
+      // If the user is a regular user, redirect to the user dashboard
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
   // Handle dynamic quiz attempt rewrites
   const quizAttemptMatch = pathname.match(/^\/quizzes\/([^\/]+)\/attempt\/?$/);
   if (quizAttemptMatch) {
@@ -110,6 +124,16 @@ export function middleware(request: NextRequest) {
 
   if (!token && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Prevent authenticated users from accessing guest routes
+  const guestRoutes = ["/guest", "/about", "/contact"];
+  if (guestRoutes.some((route) => pathname.startsWith(route)) && token) {
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   // 3. Role-based access control
