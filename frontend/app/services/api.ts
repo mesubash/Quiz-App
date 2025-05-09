@@ -385,7 +385,6 @@ export const quizService = {
       // Pass error up for resume logic
       throw error;
     }
-  
   },
 
   submitQuizAttempt: async (
@@ -398,11 +397,34 @@ export const quizService = {
     });
     return response.data;
   },
-  endQuizAttempt: async (attemptId: string) => {
-    // Correct endpoint:
-    const response = await api.post(`/attempts/end`);
-    return response.data;
+  abandonQuizAttempt: async (
+    attemptId: string | number,
+    reason:
+      | "USER"
+      | "AUTO"
+      | "INACTIVITY"
+      | "TIME_EXPIRED"
+      | "SUBMISSION_FAILED"
+  ) => {
+    try {
+      const response = await api.post(`/attempts/abandon`, {
+        attemptId: Number(attemptId),
+        reason,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new Error("Quiz attempt not found");
+        }
+        if (error.response?.status === 400) {
+          throw new Error("Only in-progress attempts can be abandoned");
+        }
+      }
+      throw error;
+    }
   },
+  getQuizAttemptById: async (attemptId: string | number) => {},
 
   getQuizHistory: async () => {
     // Correct endpoint for all user attempts:
@@ -434,6 +456,7 @@ export const userService = {
   getQuizHistory: async () => {
     try {
       const response = await api.get("/user/quiz-history");
+      console.log("Quiz History:", response.data);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch quiz history:", error);

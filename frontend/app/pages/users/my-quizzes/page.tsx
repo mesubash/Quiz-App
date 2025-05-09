@@ -24,7 +24,48 @@ type QuizAttempt = {
   totalQuestions: number;
   correctAnswers: number;
   category: string;
+  status: string;
 };
+
+const ConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-sm w-full p-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 export default function MyQuizzesPage() {
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
@@ -35,6 +76,9 @@ export default function MyQuizzesPage() {
   const [visibleAttempts, setVisibleAttempts] = useState(6);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedAttempts, setSelectedAttempts] = useState<string[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<() => void>(() => {});
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   useEffect(() => {
     const fetchQuizAttempts = async () => {
@@ -53,19 +97,20 @@ export default function MyQuizzesPage() {
           timeSpent: attempt.timeTakenSeconds || 0,
           totalQuestions: attempt.questionResults?.length || 0,
           correctAnswers: attempt.questionResults?.filter((q: any) => q.correct).length || 0,
-          category: "Uncategorized",
+          category: attempt.category || "Uncategorized",
+          status: attempt.status?.toString() || "Unknown" // Convert enum to string
         }));
-
+    
         setAttempts(transformedData);
         setFilteredAttempts(transformedData);
-
+    
         const uniqueCategories = Array.from(
           new Set(transformedData.map((attempt: { category: any }) => attempt.category || "Uncategorized"))
         ).map((category) => ({
           id: (category as string).toLowerCase().replace(/\s+/g, "-"),
           name: category as string,
         }));
-
+    
         setCategories([{ id: "all", name: "All Categories" }, ...uniqueCategories]);
       } catch (error) {
         console.error("Error fetching quiz attempts:", error);
@@ -76,6 +121,12 @@ export default function MyQuizzesPage() {
 
     fetchQuizAttempts();
   }, []);
+
+  const openModal = (action: () => void, message: string) => {
+    setModalAction(() => action);
+    setModalMessage(message);
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     const filtered = attempts.filter((attempt) => {
@@ -110,37 +161,44 @@ export default function MyQuizzesPage() {
   };
 
   const deleteSingleAttempt = async (id: string) => {
-    try {
-      await userService.deleteQuizAttempt(id);
-      setAttempts((prev) => prev.filter((attempt) => attempt.id !== id));
-      setFilteredAttempts((prev) => prev.filter((attempt) => attempt.id !== id));
-      setSelectedAttempts((prev) => prev.filter((attemptId) => attemptId !== id));
-    } catch (error) {
-      console.error("Failed to delete quiz attempt:", error);
-    }
+    openModal(async () => {
+      try {
+        await userService.deleteQuizAttempt(id);
+        setAttempts((prev) => prev.filter((attempt) => attempt.id !== id));
+        setFilteredAttempts((prev) => prev.filter((attempt) => attempt.id !== id));
+        setSelectedAttempts((prev) => prev.filter((attemptId) => attemptId !== id));
+      } catch (error) {
+        console.error("Failed to delete quiz attempt:", error);
+      }
+    }, "Are you sure you want to delete this quiz attempt?");
   };
 
   const deleteSelectedAttempts = async () => {
-    try {
-      await userService.deleteMultipleQuizAttempts(selectedAttempts);
-      setAttempts((prev) => prev.filter((attempt) => !selectedAttempts.includes(attempt.id)));
-      setFilteredAttempts((prev) => prev.filter((attempt) => !selectedAttempts.includes(attempt.id)));
-      setSelectedAttempts([]);
-    } catch (error) {
-      console.error("Failed to delete selected quiz attempts:", error);
-    }
+    openModal(async () => {
+      try {
+        await userService.deleteMultipleQuizAttempts(selectedAttempts);
+        setAttempts((prev) => prev.filter((attempt) => !selectedAttempts.includes(attempt.id)));
+        setFilteredAttempts((prev) => prev.filter((attempt) => !selectedAttempts.includes(attempt.id)));
+        setSelectedAttempts([]);
+      } catch (error) {
+        console.error("Failed to delete selected quiz attempts:", error);
+      }
+    }, "Are you sure you want to delete the selected quiz attempts?");
   };
 
   const deleteAllAttempts = async () => {
-    try {
-      await userService.deleteAllQuizAttempts();
-      setAttempts([]);
-      setFilteredAttempts([]);
-      setSelectedAttempts([]);
-    } catch (error) {
-      console.error("Failed to delete all quiz attempts:", error);
-    }
+    openModal(async () => {
+      try {
+        await userService.deleteAllQuizAttempts();
+        setAttempts([]);
+        setFilteredAttempts([]);
+        setSelectedAttempts([]);
+      } catch (error) {
+        console.error("Failed to delete all quiz attempts:", error);
+      }
+    }, "Are you sure you want to delete all quiz attempts?");
   };
+
 
   if (loading) {
     return (
@@ -160,6 +218,17 @@ export default function MyQuizzesPage() {
 
   return (
     <DashboardLayout>
+            {/* Confirmation Modal */}
+        <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={() => {
+          modalAction();
+          setIsModalOpen(false);
+        }}
+        title="Confirm Deletion"
+        message={modalMessage}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
@@ -285,17 +354,13 @@ export default function MyQuizzesPage() {
                           {attempt.quizTitle}
                         </h2>
                       </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          attempt.score >= 80
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
-                            : attempt.score >= 60
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
-                        }`}
-                      >
-                        {attempt.score}%
-                      </span>
+                        <span
+                        className="px-3 py-1 rounded-full text-sm font-medium bg-green-600 text-white dark:bg-green-700"
+                        >
+                        <span>
+                          {attempt.status.toLowerCase() === "abandoned" ? "0.00" : ((attempt.correctAnswers / attempt.totalQuestions) * 100).toFixed(2)}
+                        </span>%
+                        </span>
                     </div>
 
                     {/* Progress Bar */}
@@ -303,13 +368,15 @@ export default function MyQuizzesPage() {
                       <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                         <div
                           className={`h-2.5 rounded-full ${
-                            attempt.score >= 80
-                              ? "bg-green-600"
-                              : attempt.score >= 60
-                              ? "bg-yellow-600"
-                              : "bg-red-600"
+                          (attempt.correctAnswers / attempt.totalQuestions) * 100 >= 80
+                            ? "bg-green-600"
+                            : (attempt.correctAnswers / attempt.totalQuestions) * 100 >= 60
+                            ? "bg-yellow-600"
+                            : "bg-red-600"
                           }`}
-                          style={{ width: `${attempt.score}%` }}
+                          style={{
+                          width: `${(attempt.correctAnswers / attempt.totalQuestions) * 100}%`,
+                          }}
                         ></div>
                       </div>
                     </div>
@@ -329,18 +396,30 @@ export default function MyQuizzesPage() {
                         </span>
                         <span>{Math.round(attempt.timeSpent / 60)} minutes</span>
                       </div>
-                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col space-y-1">
                         <span className="flex items-center">
                           <Award className="w-4 h-4 mr-1" />
-                          Completed:
+                          Status:
                         </span>
                         <span>
-                          {new Date(attempt.completedAt).toLocaleDateString()}
+                            <span
+                            className={`${
+                              attempt.status.toLowerCase() === "completed"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                            }`}
+                            >
+                            {attempt.status.toLowerCase() === "completed"
+                              ? `Completed on ${new Date(attempt.completedAt).toLocaleDateString()} at ${new Date(attempt.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                              : `${attempt.status} on ${new Date(attempt.completedAt).toLocaleDateString()} at ${new Date(attempt.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                            </span>
                         </span>
-                      </div>
+                        </div>
+                      
                     </div>
                   </div>
 
+                  {attempt.status.toLowerCase() === "completed" && (
                   <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
                     <Link
                       href={`/pages/users/quizzes/${attempt.id}/history`}
@@ -350,6 +429,7 @@ export default function MyQuizzesPage() {
                       View Details
                     </Link>
                   </div>
+)}
                 </div>
               ))}
 

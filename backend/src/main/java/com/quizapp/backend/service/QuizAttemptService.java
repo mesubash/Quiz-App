@@ -213,6 +213,24 @@ public class QuizAttemptService {
     }
 
     @Transactional
+    public void abandonAttempt(Long attemptId, String reason) {
+        QuizAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
+
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            throw new BadRequestException("Only in-progress attempts can be abandoned.");
+        }
+
+        // Update the attempt status and log the reason
+        attempt.setStatus(AttemptStatus.ABANDONED);
+        attempt.setCompletedAt(LocalDateTime.now());
+        // Optionally, store the reason in a log or database
+        System.out.println("Attempt " + attemptId + " abandoned for reason: " + reason);
+
+        attemptRepository.save(attempt);
+    }
+
+    @Transactional
     public Boolean endActiveAttempt(Long quizId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)

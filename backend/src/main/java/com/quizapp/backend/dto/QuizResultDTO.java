@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class QuizResultDTO {
+
     private Long attemptId;
     private Long quizId;
     private String quizTitle;
@@ -16,5 +17,6 @@ public class QuizResultDTO {
     private Double percentage;
     private LocalDateTime completedAt;
     private Integer timeTakenSeconds;
+    private String status;
     private List<QuestionResultDTO> questionResults;
 }

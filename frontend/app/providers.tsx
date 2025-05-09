@@ -6,7 +6,7 @@ import { LogoutProvider } from "./contexts/LogoutContext"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class">
+    <ThemeProvider attribute="class" >
       <AuthProvider>
         <LogoutProvider>
           {children}

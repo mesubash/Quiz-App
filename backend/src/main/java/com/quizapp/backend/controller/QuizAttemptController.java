@@ -48,6 +48,27 @@ public class QuizAttemptController {
         return ResponseEntity.ok(quizAttemptService.submitAttempt(attemptId, submission));
     }
 
+    @PostMapping("/abandon")
+    public ResponseEntity<?> abandonAttempt(@RequestBody Map<String, Object> requestBody) {
+        Long attemptId = ((Number) requestBody.get("attemptId")).longValue();
+        String reason = (String) requestBody.get("reason");
+    
+        if (attemptId == null) {
+            throw new IllegalArgumentException("Attempt ID is required");
+        }
+        if (reason == null || reason.isEmpty()) {
+            throw new IllegalArgumentException("Reason is required");
+        }
+    
+        quizAttemptService.abandonAttempt(attemptId, reason);
+        return ResponseEntity.ok(Map.of(
+                "message", "The attempt has been successfully abandoned.",
+                "reason", reason
+        ));
+    }
+
+    //end the active one 
+
     @PostMapping("/end")
     public ResponseEntity<?> endActiveAttempt(@RequestBody Map<String, Long> requestBody) {
         Long quizId = requestBody.get("quizId");
@@ -57,6 +78,7 @@ public class QuizAttemptController {
 
         boolean ended = quizAttemptService.endActiveAttempt(quizId);
         if (ended) {
+            System.out.println("Active attempt ended successfully.");
             return ResponseEntity.ok(Map.of(
                     "message", "The active attempt for the quiz has been successfully ended."
             ));

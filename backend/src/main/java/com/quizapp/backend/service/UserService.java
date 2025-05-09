@@ -92,6 +92,7 @@ public class UserService {
                         .maxPossibleScore(attempt.getQuiz().getQuestions().size()) // Ensure this is correct
                         .percentage((attempt.getScore() * 100.0) / attempt.getQuiz().getQuestions().size())
                         .completedAt(attempt.getCompletedAt())
+                        .status(attempt.getStatus().name())
                         .timeTakenSeconds(attempt.getTimeTakenSeconds())
                         .questionResults(attempt.getUserAnswers().stream()
                                 .map(answer -> QuestionResultDTO.builder()
