@@ -36,6 +36,7 @@ public class QuizAttempt {
 
     private Integer score = 0;
     private Integer timeTakenSeconds = 0;
+    private Integer maxPossibleScore;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

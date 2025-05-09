@@ -1,11 +1,13 @@
 export interface LeaderboardEntry {
-  id: number;
+  userId: number;
   username: string;
   firstName?: string;
   lastName?: string;
   score: number;
   quizzesTaken: number;
-  rank?: number;
+  maxPossibleScore: number;
+  totalQuizzesTaken: number;
+  rank: number;
   avatarUrl?: string;
 }
 

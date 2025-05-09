@@ -39,4 +39,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
     @Query("SELECT a FROM QuizAttempt a WHERE a.user.id = :userId AND a.quiz.id = :quizId")
     List<QuizAttempt> findByUserIdAndQuizId(Long userId, Long quizId);
 
+    @Query("SELECT COUNT(a) FROM QuizAttempt a WHERE a.user.id = :userId")
+    int countByUserId(@Param("userId") Long userId);
+
 }
