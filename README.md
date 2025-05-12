@@ -1,312 +1,240 @@
-# Online Quiz Application - Backend System
+# QuizMaster - Interactive Learning Platform
 
-![Java](https://img.shields.io/badge/Java-21-blue)
+![React](https://img.shields.io/badge/React-18.2.0-blue)
+![Next.js](https://img.shields.io/badge/Next.js-13.4.0-black)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3.0-teal)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.4-green)
+![JPA](https://img.shields.io/badge/Spring_Data_JPA-3.4.4-yellowgreen)
+![Security](https://img.shields.io/badge/Spring_Security-3.4.4-red)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![Redis](https://img.shields.io/badge/Redis-7.0-red)
-![JWT](https://img.shields.io/badge/JWT-Auth-yellow)
 
 ## Table of Contents
 
-- Project Overview
-- Features
-- Technology Stack
-- API Documentation
-- Setup & Installation
-  - Secret Management
-- Database Schema
-- Security Implementation
-- Deployment
-- Contributing
-- License
-
----
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Setup & Installation](#setup--installation)
+- [API Documentation](#api-documentation)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Project Overview
 
-A robust backend system for an online quiz platform that enables:
+QuizMaster is a comprehensive online quiz platform that enables users to create, attempt, and analyze quizzes across various topics. The application features a robust user management system with role-based access control, interactive quiz experiences, and detailed analytics dashboards for performance tracking.
 
-- User authentication and authorization
-- Quiz creation and management
-- Question bank management
-- Real-time quiz attempts
-- Performance analytics and leaderboards
-
-This backend is built using **Spring Boot** and follows a modular architecture to ensure scalability and maintainability.
-
----
+The platform is designed with a modern tech stack including Next.js for the frontend and Spring Boot for the backend, ensuring scalability, security, and an excellent user experience.
 
 ## Features
 
-### Core Modules
+### User Management
 
-- **User Management**
-  - Registration with email validation
+- **Authentication & Authorization**
+  - Secure login/registration with JWT token-based authentication
   - Role-based access control (Admin/User)
-  - Password hashing with BCrypt
+  - Account management with profile customization
+  - Redis-based token management
 
-- **Quiz Engine**
+### Quiz Engine
+
+- **Quiz Creation & Management**
   - Multiple question types (MCQ, True/False, etc.)
+  - Category and difficulty tagging
   - Time-limited quizzes
+  - Option to publish/unpublish quizzes
+
+- **Quiz Attempt**
+  - Real-time quiz taking experience
   - Automatic scoring and result calculation
+  - Resume capability for interrupted attempts
+  - Detailed feedback on completion
 
-- **Reporting**
-  - User performance analytics
-  - Quiz statistics
-  - Leaderboards (global and quiz-specific)
+### Analytics & Reporting
 
-### Advanced Features
+- **User Analytics**
+  - Personal performance tracking
+  - Progress over time visualizations
+  - Strengths and weaknesses identification
+  - Quiz attempt history
 
-- JWT authentication with Redis token blacklisting
-- Comprehensive input validation using `jakarta.validation`
-- Audit logging for admin actions
-- Rate limiting for API endpoints
+- **Admin Analytics**
+  - Platform-wide statistics
+  - Quiz popularity and completion rates
+  - User engagement metrics
+  - Performance data exports
 
----
+### UI/UX
+
+- **Responsive Design**
+  - Mobile-friendly interface with Tailwind CSS
+  - Light/dark mode support
+  - Accessible components
+  - Interactive charts and visualizations
+
+## Architecture
+
+QuizMaster follows a modern microservices architecture with separate frontend and backend components:
+
+```
+Quiz-App/
+├── frontend/              # Next.js client application
+│   ├── app/               # Next.js app directory
+│   │   ├── components/    # Reusable UI components
+│   │   ├── contexts/      # State management
+│   │   ├── pages/         # Application pages
+│   │   ├── services/      # API service functions
+│   │   └── ...
+├── backend/               # Spring Boot server application
+│   ├── src/main/java/     # Java source code
+│   │   ├── controller/    # REST API endpoints
+│   │   ├── model/         # Domain entities
+│   │   ├── repository/    # Data access layer
+│   │   ├── service/       # Business logic
+│   │   └── ...
+│   └── ...
+```
 
 ## Technology Stack
+
+### Frontend
+
+- **Framework**: Next.js 13.4.0
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 3.3.0
+- **State Management**: React Context API
+- **Charts**: Recharts
+- **Icons**: Lucide React
+- **UI Components**: Custom components with Tailwind
 
 ### Backend
 
 - **Framework**: Spring Boot 3.4.4
-- **Language**: Java 21
+- **Language**: Java
+- **ORM**: Spring Data JPA
+- **Security**: Spring Security with JWT
+- **Database**: MySQL
+- **Caching**: Redis
 - **Build Tool**: Maven
-
-### Database
-
-- **Primary**: MySQL 8.0
-- **Cache**: Redis 7.0
-
-### Security
-
-- **Authentication**: JWT with Redis token blacklisting
-- **Password Encoding**: BCrypt (12 rounds)
-- **CORS**: Configurable origins
-
----
-
-## API Documentation
-
-### Base URL
-
-`http://localhost:8080/api`
-
-### Authentication
-
-```http
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/logout
-  ```properties
-
-### Quiz Management
-
-```http
-GET    /api/quizzes
-POST   /api/quizzes
-GET    /api/quizzes/{id}
-PUT    /api/quizzes/{id}
-DELETE /api/quizzes/{id}
-```
-
-### Question Management
-
-```http
-GET    /api/quizzes/{quizId}/questions
-POST   /api/quizzes/{quizId}/questions
-PUT    /api/quizzes/{quizId}/questions/{questionId}
-DELETE /api/quizzes/{quizId}/questions/{questionId}
-```
-
-### Quiz Attempts
-
-```http
-POST   /api/attempts/start?quizId={quizId}
-POST   /api/attempts/{attemptId}/submit
-GET    /api/attempts/user
-```
-
-### Leaderboard
-
-```http
-GET    /api/leaderboard
-GET    /api/leaderboard/quiz/{quizId}
-```
-
----
+- **Documentation**: Swagger/OpenAPI
 
 ## Setup & Installation
 
 ### Prerequisites
 
-- Java 21 JDK
-- MySQL 8.0+
-- Redis 7.0+
+- Node.js 18+
+- npm 9+
+- JDK 17+
 - Maven 3.8+
+- MySQL 8.0+
+- Redis 6.0+ (optional, for enhanced token management)
 
-### Configuration
+### Frontend Setup
 
 1. Clone the repository:
 
    ```bash
-   git clone git@github.com:mesubash/Quiz-App.git
+   git clone https://github.com/mesubash/Quiz-App.git
+   cd Quiz-App
+   ```
+
+2. Install frontend dependencies:
+
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+3. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Access the frontend at [`http://localhost:3000`](http://localhost:3000).
+
+### Backend Setup
+
+1. Configure MySQL database:
+   - Create a new database named `quiz_app`.
+   - Update database credentials in `application.properties`.
+
+2. Build and run the backend:
+
+   ```bash
    cd backend
+   mvn clean install
+   mvn spring-boot:run
    ```
 
-2. Configure the database in `application.properties`:
+3. The API will be available at [`http://localhost:8080`](http://localhost:8080).
 
-   ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/quiz_app
-   spring.datasource.username=quiz_app_user
-   spring.datasource.password=strong_password
-   spring.jpa.hibernate.ddl-auto=update
-   ```
+## API Documentation
 
-3. Configure Redis:
+The backend API is documented using OpenAPI/Swagger. Once the backend is running, you can access the API documentation at:
 
-   ```properties
-   spring.redis.host=localhost
-   spring.redis.port=6379
-   ```
-
-4. JWT Configuration:
-
-   ```properties
-   app.jwt-secret=${JWT_SECRET}
-   app.jwt-expiration-milliseconds=${JWT_EXPIRATION}
-   app.jwt-refresh-expiration-milliseconds=${JWT_REFRESH_EXPIRATION}
-   ```
-
----
-
-### Secret Management
-
-#### Why Secrets Are Important
-
-Secrets like `JWT_SECRET` are critical for securing your application. They are used for signing JWT tokens and ensuring the integrity of sensitive operations. Exposing these secrets can lead to security vulnerabilities.
-
-#### 1. Generating a Secure Secret
-
-- **On Windows**:
-  1. Open **PowerShell**.
-  2. Run the following command to generate a 32-byte Base64-encoded secret:
-
-     ```powershell
-     [convert]::ToBase64String((1..32 | ForEach-Object {Get-Random -Maximum 256}))
-     ```
-
-- **On Linux/Mac**:
-  1. Open your terminal.
-  2. Run the following command to generate a 32-byte Base64-encoded secret:
-
-     ```bash
-     openssl rand -base64 32
-     ```
-
-#### 2. Storing the Secret
-
-- **Using Environment Variables**:
-  - **Windows**:
-
-    ```cmd
-    setx JWT_SECRET dGhpc19pc19hX3ZhbGlkX2Jhc2U2NF9zZWNyZXQ=
-    setx JWT_EXPIRATION 3600000
-    setx JWT_REFRESH_EXPIRATION 604800000
-    ```
-
-  - **Linux/Mac**:
-
-    ```bash
-    export JWT_SECRET=your_base64_secret
-    ```
-
-- **Using a `.env` File**:
-  1. Create a `.env` file in the root of your project.
-  2. Add the following content:
-
-     ```env
-     JWT_SECRET=your_base64_secret
-     ```
-
-  3. Add `.env` to your .gitignore file to prevent it from being committed to version control.
-
-#### 3. Configuring the Application
-
-- Update `application.properties`:
-
-  ```properties
-  app.jwt-secret=${JWT_SECRET}
-
-  ```
-
----
-
-### Running the Application
-
-```bash
-mvn spring-boot:run
+```
+http://localhost:8080/swagger-ui/index.html
 ```
 
----
+### Key API Endpoints
 
-## Database Schema
+- **Authentication**
+  - `/api/auth/login` - User authentication
+  - `/api/auth/register` - User registration
 
-The database schema is defined in `schema.sql`. Below are the key tables:
+- **User Management**
+  - `/api/users` - User operations
+  - `/api/admin/users` - Admin user management
 
-- **users**: Stores user accounts and credentials.
-- **quizzes**: Stores quiz metadata.
-- **questions**: Stores questions for each quiz.
-- **options**: Stores answer options for questions.
-- **quiz_attempts**: Tracks user attempts for quizzes.
-- **user_answers**: Tracks individual answers submitted by users.
+- **Quiz Operations**
+  - `/api/quizzes` - Quiz CRUD operations
+  - `/api/quizzes/{quizId}` - Specific quiz operations
+  - `/api/quizzes/{quizId}/questions` - Quiz question management
 
----
+## Configuration
 
-## Security Implementation
+### Environment Variables
 
-### Authentication Flow
+- **Frontend**
+  - `.env.local` for local development
 
-1. User logs in with credentials.
-2. Server validates and returns a JWT token.
-3. Client includes the token in the `Authorization` header for subsequent requests.
-4. Server validates the token for each request.
+- **Backend**
+  - `application.properties` for database and server configurations
 
-### Security Features
+### Key Configurations
 
-- Password hashing with BCrypt
-- JWT signature verification
-- Token blacklisting on logout (using Redis)
-- Role-based endpoint protection
-- CSRF protection for web endpoints
-- Rate limiting (100 requests/minute)
+- **Frontend**
+  - Tailwind CSS for styling
+  - Next.js for routing and server-side rendering
 
----
+- **Backend**
+  - Spring Security for authentication
+  - Redis for caching
+  - MySQL for data persistence
 
 ## Deployment
 
-### Production Setup
+### Frontend Deployment
 
-1. Build the application:
-
-   ```bash
-   mvn clean package -DskipTests
-   ```
-
-2. Run with the production profile:
+1. Build the production-ready frontend:
 
    ```bash
-   java -jar target/quiz-app-backend.jar --spring.profiles.active=prod
+   npm run build
    ```
 
-### Docker Deployment
+2. Deploy the `out` directory to your hosting provider.
 
-```dockerfile
-FROM openjdk:17-jdk-slim
-COPY target/quiz-app-backend.jar app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
-```
+### Backend Deployment
 
----
+1. Package the backend application:
+
+   ```bash
+   mvn package
+   ```
+
+2. Deploy the generated JAR file to your server or cloud provider.
 
 ## Contributing
 
@@ -316,10 +244,6 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 4. Push to the branch (`git push origin feature/amazing-feature`).
 5. Open a Pull Request.
 
----
-
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
