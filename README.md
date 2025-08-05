@@ -8,6 +8,12 @@
 ![Security](https://img.shields.io/badge/Spring_Security-3.4.4-red)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
 
+## 🚀 Live Demo
+
+**Frontend URL**: [https://quizapp.subashsdhami.com.np/](https://quizapp.subashsdhami.com.np/)
+
+Test the live application with all the features mentioned below.
+
 ## Table of Contents
 
 - [Project Overview](#project-overview)

@@ -4,12 +4,6 @@
 ![Next.js](https://img.shields.io/badge/Next.js-13.4.0-black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3.0-teal)
 
-## 🚀 Live Demo
-
-**Frontend URL**: [https://quizapp.subashsdhami.com.np/](https://quizapp.subashsdhami.com.np/)
-
-Test the live application with all the features mentioned below.
-
 ## Table of Contents
 
 - Project Overview
