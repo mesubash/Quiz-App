@@ -1,12 +1,9 @@
-"use client"
-
-import { use } from "react"
 import Link from "next/link"
 import { Brain, Users, Clock, Star, ChevronRight } from "lucide-react"
 import { ThemeToggle } from "@/app/components/theme-toggle"
 
-export default function QuizDetails({ params }: { params: { id: string } }) {
-  const id = use(Promise.resolve(params.id))
+export default async function QuizDetails({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
 
   // Mock quiz data - replace with actual API call
   const quiz = {

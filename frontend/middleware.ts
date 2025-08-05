@@ -10,8 +10,8 @@ export function middleware(request: NextRequest) {
   // Redirect logic for the base URL
   if (pathname === "/") {
     if (!token) {
-      // If no token, redirect to the guest page
-      return NextResponse.rewrite(new URL("/guest", request.url));
+      // If no token, serve the main page
+      return NextResponse.next();
     } else if (role === "admin") {
       // If the user is an admin, redirect to the admin dashboard
       return NextResponse.redirect(new URL("/admin", request.url));
@@ -42,6 +42,15 @@ export function middleware(request: NextRequest) {
     );
   }
 
+  // Handle guest quiz details page (publicly accessible)
+  const guestQuizMatch = pathname.match(/^\/quiz\/([^\/]+)\/?$/);
+  if (guestQuizMatch) {
+    const quizId = guestQuizMatch[1];
+    return NextResponse.rewrite(
+      new URL(`/pages/guest/quiz/${quizId}`, request.url)
+    );
+  }
+
   const routeRewrites: Record<string, string> = {
     // Auth routes
     "/login": "/auth/login",
@@ -50,6 +59,13 @@ export function middleware(request: NextRequest) {
     "/reset-password": "/auth/reset-password",
     "/verify-email": "/auth/verify-email",
     "/logout": "/auth/logout",
+
+    // Guest routes
+    "/browse-quizzes": "/pages/guest/browse-quizzes",
+    "/about": "/pages/guest/about",
+    "/contact": "/pages/guest/contact",
+    "/privacy": "/pages/guest/privacy",
+    "/terms": "/pages/guest/terms",
 
     // Admin routes
     "/admin": "/pages/admin",
@@ -69,7 +85,6 @@ export function middleware(request: NextRequest) {
     "/leaderboard": "/pages/users/leaderboard",
     "/history": "/pages/users/history",
     "/help": "/pages/users/help",
-    "/contact": "/pages/users/contact",
     "/messages": "/pages/users/messages",
     "/analytics": "/pages/users/analytics",
   };
@@ -89,6 +104,10 @@ export function middleware(request: NextRequest) {
       "/verify-email",
       "/help",
       "/contact",
+      "/browse-quizzes",
+      "/about",
+      "/privacy",
+      "/terms",
     ].includes(pathname)
   ) {
     if (token && !["/help", "/contact"].includes(pathname)) {
