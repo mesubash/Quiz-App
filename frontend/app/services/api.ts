@@ -209,15 +209,34 @@ export const authService = {
 
   register: async (
     username: string,
+    firstName: string,
+    lastName: string,
     email: string,
-    password: string
+    password: string,
+    role: string = "USER"
   ): Promise<User> => {
-    const response = await api.post<User>("/auth/register", {
-      username,
-      email,
-      password,
-    });
-    return response.data;
+    try {
+      const response = await api.post<User>("/auth/register", {
+        username,
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+      });
+      return response.data;
+    } catch (error: any) {
+      // Re-throw the error for the context to handle, but don't let axios log it
+      if (error.response) {
+        // Create a custom error with the backend message
+        const customError = new Error(
+          error.response.data?.message || "Registration failed"
+        );
+        (customError as any).response = error.response;
+        throw customError;
+      }
+      throw error;
+    }
   },
 
   logout: async (silent: boolean = false) => {
@@ -328,7 +347,6 @@ export const adminService = {
 export const quizService = {
   getAllQuizzes: async () => {
     const response = await api.get("/quizzes");
-    console.log("Quizzes:", response.data);
     return response.data;
   },
 
@@ -456,7 +474,6 @@ export const userService = {
   getQuizHistory: async () => {
     try {
       const response = await api.get("/user/quiz-history");
-      console.log("Quiz History:", response.data);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch quiz history:", error);
@@ -469,7 +486,6 @@ export const userService = {
         `/attempts/user/quiz-history/${Number(attemptId)}`
       );
       return response.data;
-      console.log("Quiz Attempt Details:", response.data);
     } catch (error) {
       console.error("Failed to fetch quiz attempt details:", error);
       throw error;

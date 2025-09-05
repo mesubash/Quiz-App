@@ -34,6 +34,7 @@ function clearAuthCookies() {
 const AuthContext = createContext<{
   user: User | null;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  register: (username: string, firstName: string, lastName: string, email: string, password: string, role: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
   refreshTokenIfNeeded: () => Promise<string | null>;
@@ -166,11 +167,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
+
+  const register = async (username: string, firstName: string, lastName: string, email: string, password: string, role: string) => {
+    setLoading(true);
+    try {
+      const user = await authService.register(username, firstName, lastName, email, password, role);
+      // Registration successful - user can now login
+      // Don't automatically log them in, let them go to login page
+    } catch (error: any) {
+      // Extract the error message and throw a cleaner error (don't log the original axios error)
+      let errorMessage = "Failed to create account. Please try again.";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message && !error.message.includes('Request failed with status code')) {
+        errorMessage = error.message;
+      }
+      
+      // Throw a clean error with just the message
+      const cleanError = new Error(errorMessage);
+      cleanError.name = 'RegistrationError';
+      throw cleanError;
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <AuthContext.Provider
       value={{
         user,
         login,
+        register,
         logout,
         loading,
         refreshTokenIfNeeded,
