@@ -35,6 +35,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
     @Column(name = "enabled", nullable = false)
+    @Builder.Default
     private boolean enabled = true;
 
     @CreationTimestamp

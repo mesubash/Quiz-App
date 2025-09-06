@@ -36,15 +36,19 @@ public class Question {
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String correctAnswer;
+    @Builder.Default
     private Integer attempts = 0;
+    @Builder.Default
     private Integer correctSelections = 0;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private Difficulty difficulty = Difficulty.UNASSIGNED;
 
     private String explanation;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
     private List<Option> options = List.of();
 
     @CreationTimestamp

@@ -21,5 +21,6 @@ public class Option {
     @Column(name = "option_text", nullable = false, columnDefinition = "TEXT")
     private String optionText;
 
+    @Builder.Default
     private boolean isCorrect = false; // Use primitive boolean with a default value
 }
