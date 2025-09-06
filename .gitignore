@@ -20,6 +20,10 @@ docker-data/
 backend/test-docker.sh
 **/test-docker.sh
 
+# Deployment templates (may contain secrets)
+backend/deployment-env-template.txt
+**/deployment-env-template.txt
+
 # Logs
 *.log
 logs/
