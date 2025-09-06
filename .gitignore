@@ -1,1 +1,40 @@
 .vscode/
+
+# Environment variables (contains secrets)
+.env
+backend/.env
+**/backend/.env
+
+# Build artifacts
+backend/target/
+**/target/
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Docker volumes
+docker-data/
+
+# Test and development scripts (contain secrets)
+backend/test-docker.sh
+**/test-docker.sh
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
