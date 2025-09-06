@@ -5,6 +5,12 @@
 backend/.env
 **/backend/.env
 
+# Frontend environment files
+frontend/.env.local
+frontend/.env.production.local
+**/frontend/.env.local
+**/frontend/.env.production.local
+
 # Build artifacts
 backend/target/
 **/target/
